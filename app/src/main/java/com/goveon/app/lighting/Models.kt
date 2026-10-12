@@ -3,6 +3,7 @@ package com.goveon.app.lighting
 import org.json.JSONObject
 
 enum class ThemeMode { SYSTEM, LIGHT, DARK }
+enum class BleConnection { DISCONNECTED, CONNECTING, CONNECTED }
 data class AppSettings(val theme: ThemeMode = ThemeMode.SYSTEM, val dynamicColor: Boolean = true, val preferLan: Boolean = true)
 data class CapabilityOption(val name: String, val valueJson: String)
 data class CapabilityField(val name: String, val dataType: String, val required: Boolean, val options: List<CapabilityOption> = emptyList(), val min: Int? = null, val max: Int? = null)
@@ -26,10 +27,12 @@ data class LightDevice(
     val id: String, val model: String, val name: String, val ip: String? = null,
     val cloudAvailable: Boolean = false, val capabilities: List<LightCapability> = emptyList(),
     val state: LightState = LightState(), val customName: String? = null,
+    val bleAddress: String? = null, val bleConnection: BleConnection = BleConnection.DISCONNECTED,
+    val bleRssi: Int? = null, val bleProfile: String? = null,
 ) {
     val displayName: String get() = customName?.takeIf { it.isNotBlank() } ?: name
     fun capability(instance: String): LightCapability? = capabilities.firstOrNull { it.instance == instance }
-    fun supports(instance: String): Boolean = capability(instance) != null || (ip != null && instance in setOf("powerSwitch", "brightness", "colorRgb", "colorTemperatureK"))
+    fun supports(instance: String): Boolean = capability(instance) != null || (ip != null && instance in setOf("powerSwitch", "brightness", "colorRgb", "colorTemperatureK")) || GoveeBleProtocol.supports(bleProfile, instance)
 }
 data class LightGroup(val id: String, val name: String, val deviceIds: Set<String>)
 data class QuickAction(val id: String, val name: String, val deviceIds: Set<String>, val commands: List<LightCommand>)
@@ -37,6 +40,7 @@ data class AppState(
     val devices: List<LightDevice> = emptyList(), val groups: List<LightGroup> = emptyList(),
     val quickActions: List<QuickAction> = emptyList(), val settings: AppSettings = AppSettings(),
     val isScanning: Boolean = false, val hasApiKey: Boolean = false, val error: String? = null,
+    val isBluetoothScanning: Boolean = false,
 )
 
 sealed interface LightCommand {

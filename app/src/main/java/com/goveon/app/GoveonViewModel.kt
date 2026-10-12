@@ -38,6 +38,32 @@ class GoveonViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
     fun scan() = work("scan") { repository.scan() }
+    fun discoverBluetooth() = work("bluetooth-scan") {
+        val count = repository.discoverBluetooth()
+        if (state.value.error == null) notices.emit(if (count == 0) "No Govee Bluetooth advertisements found. Power on the light, move closer, and close other active light connections."
+            else "$count nearby Bluetooth devices found. Connect to identify supported controls.")
+    }
+    fun connectBluetooth(id: String) = work("bluetooth:$id") {
+        val result = repository.connectBluetooth(id)
+        responses.update { it + (id to result) }
+        notices.emit(result.message)
+    }
+    fun disconnectBluetooth(id: String) = work("bluetooth:$id") {
+        repository.disconnectBluetooth(id)
+        notices.emit("Bluetooth connection closed. The light remains saved.")
+    }
+    fun connectBluetoothGroup(groupId: String) = work("group-connect:$groupId") {
+        val group = state.value.groups.firstOrNull { it.id == groupId } ?: error("This group is no longer saved.")
+        val devices = state.value.devices.filter { it.id in group.deviceIds && it.bleAddress != null && it.bleConnection != BleConnection.CONNECTED }
+        if (devices.isEmpty()) { notices.emit("The Bluetooth members are already connected."); return@work }
+        // Establish GATT links one at a time; group commands fan out to established sessions.
+        val results = devices.map { device ->
+            repository.connectBluetooth(device.id).also { result -> responses.update { it + (device.id to result) } }
+        }
+        val result = GroupResult(results)
+        if (result.failures.isNotEmpty()) report.value = result
+        notices.emit("Connected ${results.count { it.successful }}/${results.size} Bluetooth members.${if (result.failures.isNotEmpty()) " Review the results." else ""}")
+    }
     fun refresh(id: String) = work(id) {
         val result = repository.refresh(id)
         responses.update { it + (id to result) }
@@ -59,11 +85,16 @@ class GoveonViewModel(application: Application) : AndroidViewModel(application) 
     fun sendGroup(id: String, command: LightCommand) = work("group:$id") {
         val result = repository.sendGroup(id, command)
         val accepted = result.results.count { it.successful }
+        val confirmed = result.results.count { it.status == CommandStatus.CONFIRMED }
         if (result.failures.isNotEmpty()) report.value = result
-        notices.emit(if (result.failures.isEmpty()) "$accepted lights: command accepted. Refresh to check state."
+        notices.emit(if (result.failures.isEmpty()) {
+            if (confirmed == accepted) "$confirmed lights reported the requested state."
+            else "$accepted lights accepted the command; $confirmed confirmed state. Refresh to check the others."
+        }
             else "$accepted/${result.results.size} lights accepted. Review the failures.")
     }
     fun rename(id: String, name: String) = work("edit:$id") { repository.renameDevice(id, name) }
+    fun bluetoothModel(id: String, model: String) = work("edit:$id") { repository.setBluetoothModel(id, model) }
     fun forget(id: String) = work("edit:$id") { repository.forgetDevice(id) }
     fun saveGroup(id: String?, name: String, targets: Set<String>) = work("save-group") {
         repository.saveGroup(LightGroup(id ?: UUID.randomUUID().toString(), name.trim(), targets))

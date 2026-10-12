@@ -2,6 +2,8 @@
 
 This is a bounded static investigation of the user-supplied APK, performed with the **REA skill**, REA 6.4.0 and headless JADX MCP 0.7.1. The APK was never executed. No phone traffic or physical device behavior was captured. The resulting app is original Kotlin/Compose code; the APK and decompiled source are excluded from Git.
 
+This page records the initial LAN/cloud investigation. The subsequent [Bluetooth investigation](ble-protocol.md) extends it with GATT selection, direct connections, notifications, model profiles, and original BLE codecs used by the Bluetooth-first 0.2.0 alpha. The first release's unresolved Bluetooth questions below are historical boundaries, not a statement that the current app is LAN/cloud-only.
+
 ## Artifact and reproducibility
 
 - Input: `reference/com.govee.home_6.2.01-778_minAPI24(arm64-v8a,armeabi-v7a,x86,x86_64)(nodpi)_apkmirror.com.apk` (the workspace uses singular `reference/`).
@@ -55,13 +57,13 @@ The public specifications and the app's private transport are distinct evidence 
 ## Design choices derived from the investigation
 
 1. Separate transport, protocol and capability state. The APK's controller families and typed cloud conversion justify avoiding one guessed universal protocol.
-2. Prefer LAN for simple controls and allow documented cloud fallback. Bind local sockets to the Wi-Fi network, hold multicast only while foreground, and report response failures explicitly.
+2. Prefer direct Bluetooth for supported connected lights. Keep LAN and developer cloud optional. Bind local sockets to a physical Wi-Fi IPv4 interface, hold multicast only while foreground, and preserve operation/native errors. A VPN may still prevent LAN traffic; a successful JVM test is not a Wi-Fi hardware test.
 3. Drive scenes/effects/segments/music and range limits from the actual cloud device schema. Do not advertise unsupported controls or assign speculative scene IDs.
 4. Preserve unknown/historical state and distinguish command acceptance from confirmation. Concurrent group fan-out retains each member's outcome; it cannot provide hardware clock synchronization.
 5. Keep original uncluttered UI and private local customization. TrailRelay contributed design principles, not its Android Views implementation or Govee's UI.
 
 ## Remaining work requiring further evidence
 
-Bluetooth-only control/onboarding needs verified service/write/notify UUIDs, advertisements, connect/initialization/keepalive sequence, state parsers, model profiles and physical tests. Proprietary streaming, DreamView, native scene catalogs and arbitrary DIY editing remain unresolved. Account/broker authentication and native-library behavior were not reconstructed. Those gaps are documented instead of shipping guessed packets as supported functionality.
+The [Bluetooth report](ble-protocol.md) records which service/write roles, connection steps, parsers, and model profiles have since been resolved. Physical compatibility, authenticated/provisioning-only models, proprietary streaming, DreamView, native scene catalogs, and arbitrary DIY editing remain unresolved. Account/broker authentication and native-library behavior were not reconstructed. Those gaps are documented instead of presenting inferred compatibility as hardware verified.
 
 Discovery, communication and basic control questions are answered within the named static/public-protocol boundaries. Broad model-specific behavior remains partially answered. This report does not claim complete source equivalence or full Govee feature parity.

@@ -31,6 +31,7 @@ class LightRepository(context: Context) {
     private val devicesMutex = ConcurrentHashMap<String, Mutex>()
     private val scanMutex = Mutex()
     private val lan = LanTransport(appContext, scope, ::discovered, ::receivedState)
+    private val ble = BleTransport(appContext, scope, ::discoveredBluetooth, ::bluetoothConnection, ::bluetoothState)
     private val cloud = CloudTransport { apiKey }
     init {
         runCatching { keys.read() }.onSuccess { apiKey = it; change { s -> s.copy(hasApiKey = !it.isNullOrBlank()) } }
@@ -47,8 +48,49 @@ class LightRepository(context: Context) {
         s.copy(devices = replaceDevice(s.devices, device))
     }
     private fun receivedState(ip: String, reading: LightState) = change { s -> s.copy(devices = s.devices.map { if (it.ip == ip) it.copy(state = reading.copy(values = it.state.values)) else it }) }
+    private fun discoveredBluetooth(advertisement: BleAdvertisement) = change(true) { s ->
+        val existing = s.devices.firstOrNull { it.bleAddress == advertisement.address || it.id == advertisement.address }
+        val found = existing?.copy(bleAddress = advertisement.address, bleRssi = advertisement.rssi,
+            model = advertisement.model ?: existing.model)
+            ?: LightDevice("BLE:${advertisement.address}", advertisement.model ?: "Unknown BLE model", advertisement.name,
+                bleAddress = advertisement.address, bleRssi = advertisement.rssi)
+        s.copy(devices = replaceDevice(s.devices, found))
+    }
+    private fun bluetoothConnection(address: String, connection: BleConnection, profile: String?) = change(true) { s ->
+        s.copy(devices = s.devices.map { if (it.bleAddress == address) it.copy(bleConnection = connection,
+            bleProfile = profile ?: it.bleProfile,
+            state = if (connection == BleConnection.DISCONNECTED) it.state.copy(online = null, lastUpdated = 0) else it.state) else it })
+    }
+    private fun bluetoothState(address: String, reading: LightState) = change { s ->
+        s.copy(devices = s.devices.map { if (it.bleAddress == address) it.copy(state = it.state.copy(
+            power = reading.power ?: it.state.power, brightness = reading.brightness ?: it.state.brightness,
+            rgb = reading.rgb ?: it.state.rgb, temperatureKelvin = reading.temperatureKelvin ?: it.state.temperatureKelvin,
+            online = true, lastUpdated = reading.lastUpdated)) else it })
+    }
     private fun device(id: String) = state.value.devices.firstOrNull { it.id == id } ?: error("This device is no longer saved.")
     fun clearError() = change { it.copy(error = null) }
+
+    suspend fun discoverBluetooth(): Int {
+        if (state.value.isBluetoothScanning) return 0
+        change { it.copy(isBluetoothScanning = true, error = null) }
+        return try { ble.scan() }
+        catch (cancelled: CancellationException) { throw cancelled }
+        catch (e: Exception) { change { it.copy(error = friendly(e)) }; 0 }
+        finally { change { it.copy(isBluetoothScanning = false) } }
+    }
+    suspend fun connectBluetooth(id: String): CommandResult = lockFor(id).withLock {
+        try {
+            val target = device(id)
+            val address = requireNotNull(target.bleAddress) { "Discover this light over Bluetooth first." }
+            val profile = ble.connect(address, target.model)
+            ble.query(address)
+            CommandResult(id, CommandStatus.ACCEPTED,
+                if (profile == "unclassified") "Bluetooth connected, but this model's control protocol could not be identified. Unsupported controls stay hidden."
+                else "Bluetooth connected. Controls work locally; reported state appears when the light replies.", "Bluetooth")
+        } catch (cancelled: CancellationException) { throw cancelled }
+        catch (e: Exception) { failure(id, friendly(e)) }
+    }
+    fun disconnectBluetooth(id: String) { device(id).bleAddress?.let(ble::disconnect) }
 
     /** Explicit foreground discovery; no background polling or account authentication. */
     suspend fun scan() {
@@ -66,7 +108,9 @@ class LightRepository(context: Context) {
                             var list = s.devices.map { if (it.cloudAvailable && it.id !in ids) it.copy(cloudAvailable = false) else it }
                             discovered.forEach { new ->
                                 val old = list.firstOrNull { it.id == new.id }
-                                list = replaceDevice(list, new.copy(ip = old?.ip, customName = old?.customName, state = old?.state ?: LightState()))
+                                list = replaceDevice(list, new.copy(ip = old?.ip, customName = old?.customName, state = old?.state ?: LightState(),
+                                    bleAddress = old?.bleAddress, bleConnection = old?.bleConnection ?: BleConnection.DISCONNECTED,
+                                    bleRssi = old?.bleRssi, bleProfile = old?.bleProfile))
                             }
                             s.copy(devices = list)
                         }
@@ -75,7 +119,7 @@ class LightRepository(context: Context) {
                 local.await()?.let { failures.add("LAN: $it") }
                 remote.await()?.let { failures.add("Cloud: $it") }
             }
-            val ids = state.value.devices.map { it.id }
+            val ids = state.value.devices.filter { it.ip != null || it.cloudAvailable }.map { it.id }
             dispatchGroup(ids.toSet(), LightCommand.Power(false)) { id, _ -> refresh(id) }
             if (failures.isNotEmpty()) change { it.copy(error = failures.joinToString("\n")) }
         } finally { change { it.copy(isScanning = false) }; scanMutex.unlock() }
@@ -84,6 +128,10 @@ class LightRepository(context: Context) {
     suspend fun refresh(deviceId: String): CommandResult = lockFor(deviceId).withLock {
         try {
             val device = device(deviceId)
+            if (device.bleConnection == BleConnection.CONNECTED && device.bleAddress != null) {
+                ble.query(device.bleAddress)
+                return@withLock CommandResult(deviceId, CommandStatus.ACCEPTED, "Bluetooth state requested. Readings update when the light replies.", "Bluetooth")
+            }
             if (device.ip != null && (state.value.settings.preferLan || !device.cloudAvailable || apiKey == null)) {
                 val reply = try { lan.query(device.ip) }
                     catch (cancelled: CancellationException) { throw cancelled }
@@ -94,7 +142,7 @@ class LightRepository(context: Context) {
                     return@withLock failure(deviceId, "No LAN reply. Check Wi-Fi, power, and the device's LAN switch.")
                 }
             }
-            require(device.cloudAvailable) { "This device is only available through LAN." }
+            require(device.cloudAvailable) { if (device.bleAddress != null) "Connect over Bluetooth to read this light." else "This device is only available through LAN." }
             val refreshed = GoveeCloudProtocol.parseState(cloud.state(device), device.state)
             change { s -> s.copy(devices = s.devices.map { if (it.id == deviceId) it.copy(state = refreshed) else it }) }
             when (refreshed.online) {
@@ -128,6 +176,16 @@ class LightRepository(context: Context) {
     suspend fun send(deviceId: String, command: LightCommand): CommandResult = lockFor(deviceId).withLock {
         try {
             val target = device(deviceId)
+            if (target.bleConnection == BleConnection.CONNECTED && target.bleAddress != null && GoveeBleProtocol.supports(target.bleProfile, command.instance())) {
+                ble.send(target.bleAddress, command)
+                // GATT success acknowledges delivery, not that the light changed physically.
+                val refreshError = attempt { ble.query(target.bleAddress) }
+                return@withLock CommandResult(deviceId, CommandStatus.ACCEPTED,
+                    if (refreshError == null) "Bluetooth command delivered. State requested; readings update when the light replies."
+                    else "Bluetooth command delivered, but state refresh failed: $refreshError", "Bluetooth")
+            }
+            if (target.bleAddress != null && target.ip == null && !target.cloudAvailable)
+                throw BleFailure(if (target.bleConnection != BleConnection.CONNECTED) "Connect over Bluetooth before controlling this light." else "This control is not supported by this light's Bluetooth profile yet.")
             val canLan = target.ip != null && command !is LightCommand.Capability
             // Cloud schemas narrow model-specific ranges whenever available.
             if (target.cloudAvailable && command !is LightCommand.Capability && target.capability(command.instance()) != null) GoveeCloudProtocol.capabilityValue(target, command)
@@ -163,7 +221,15 @@ class LightRepository(context: Context) {
         }
     }
     fun renameDevice(id: String, name: String) = change(true) { s -> s.copy(devices = s.devices.map { if (it.id == id) it.copy(customName = name.trim().take(80).takeIf { it.isNotBlank() }) else it }) }
-    fun forgetDevice(id: String) = change(true) { s -> s.copy(devices = s.devices.filterNot { it.id == id }, groups = s.groups.map { it.copy(deviceIds = it.deviceIds - id) }, quickActions = s.quickActions.map { it.copy(deviceIds = it.deviceIds - id) }) }
+    fun setBluetoothModel(id: String, model: String) {
+        val sku = model.trim().uppercase()
+        require(GoveeBleProtocol.canProbe(sku)) { "Enter the H6xxx lighting model printed on the light or its controller." }
+        val target = device(id)
+        require(target.bleAddress != null) { "This device was not discovered over Bluetooth." }
+        ble.disconnect(target.bleAddress)
+        change(true) { s -> s.copy(devices = s.devices.map { if (it.id == id) it.copy(model = sku, bleProfile = null, state = LightState()) else it }) }
+    }
+    fun forgetDevice(id: String) { state.value.devices.firstOrNull { it.id == id }?.bleAddress?.let(ble::disconnect); change(true) { s -> s.copy(devices = s.devices.filterNot { it.id == id }, groups = s.groups.map { it.copy(deviceIds = it.deviceIds - id) }, quickActions = s.quickActions.map { it.copy(deviceIds = it.deviceIds - id) }) } }
     fun saveGroup(group: LightGroup) {
         require(group.name.isNotBlank() && group.deviceIds.isNotEmpty()) { "Choose a group name and at least one light." }
         change(true) { s -> s.copy(groups = s.groups.filterNot { it.id == group.id } + group.copy(name = group.name.trim().take(80))) }
@@ -181,9 +247,9 @@ class LightRepository(context: Context) {
         change { it.copy(hasApiKey = apiKey != null, error = null) }
     }
     /** Call when UI goes to background to release the multicast lock. */
-    fun pauseNetworking() = lan.pause()
-    fun resumeNetworking() = lan.resume()
-    fun close() { lan.close(); scope.cancel() }
+    fun pauseNetworking() { lan.pause(); ble.pause() }
+    fun resumeNetworking() { lan.resume(); ble.resume() }
+    fun close() { lan.close(); ble.close(); scope.cancel() }
     private fun lockFor(id: String) = devicesMutex.getOrPut(id) { Mutex() }
 }
 

@@ -16,6 +16,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.BluetoothSearching
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -60,6 +61,9 @@ fun GoveonApp(vm: GoveonViewModel) {
     val responses by vm.lastResponses.collectAsStateWithLifecycle()
     val now by freshnessClock()
     GoveonTheme(state.settings) {
+        val bluetoothAccess = rememberBluetoothAccess()
+        val discoverBluetooth = { bluetoothAccess { vm.discoverBluetooth() } }
+        val connectBluetooth: (String) -> Unit = { id -> bluetoothAccess { vm.connectBluetooth(id) } }
         var destination by rememberSaveable { mutableStateOf(Destination.LIGHTS) }
         var deviceId by rememberSaveable { mutableStateOf<String?>(null) }
         var groupId by rememberSaveable { mutableStateOf<String?>(null) }
@@ -74,8 +78,8 @@ fun GoveonApp(vm: GoveonViewModel) {
             topBar = {
                 TopAppBar(title = { Text("Goveon", fontWeight = FontWeight.Bold) }, actions = {
                     if (destination == Destination.LIGHTS) {
-                        IconButton(onClick = vm::scan, enabled = !state.isScanning) {
-                            Icon(Icons.Outlined.Radar, "Discover lights")
+                        IconButton(onClick = discoverBluetooth, enabled = !state.isBluetoothScanning) {
+                            Icon(Icons.AutoMirrored.Outlined.BluetoothSearching, "Discover nearby Bluetooth lights")
                         }
                     }
                 })
@@ -91,7 +95,7 @@ fun GoveonApp(vm: GoveonViewModel) {
         ) { insets ->
             AnimatedContent(destination, modifier = Modifier.padding(insets).fillMaxSize(), label = "navigation") { screen ->
                 when (screen) {
-                    Destination.LIGHTS -> LightsScreen(state, busy, vm::scan, { destination = Destination.SETTINGS }, { deviceId = it }, vm::send, now)
+                    Destination.LIGHTS -> LightsScreen(state, busy, discoverBluetooth, vm::scan, { destination = Destination.SETTINGS }, { deviceId = it }, vm::send, now, connectBluetooth)
                     Destination.GROUPS -> GroupsScreen(state, { editGroup = null; groupEditor = true }, { groupId = it }, { editGroup = it; groupEditor = true })
                     Destination.ACTIONS -> ActionsScreen(state, busy, { editAction = null; actionEditor = true }, vm::runAction, { editAction = it; actionEditor = true })
                     Destination.SETTINGS -> SettingsScreen(state, busy, vm::settings, vm::apiKey)
@@ -100,25 +104,28 @@ fun GoveonApp(vm: GoveonViewModel) {
         }
         state.devices.firstOrNull { it.id == deviceId }?.let { device ->
             LaunchedEffect(device.id) {
-                vm.refresh(device.id)
+                if (device.bleAddress == null || device.bleConnection == BleConnection.CONNECTED) vm.refresh(device.id)
                 if (device.cloudAvailable) vm.scenes(device.id)
             }
-            DeviceSheet(device, device.id in busy, onDismiss = { deviceId = null },
+            DeviceSheet(device, device.id in busy || "bluetooth:${device.id}" in busy, onDismiss = { deviceId = null },
                 onRefresh = { vm.refresh(device.id) }, onScenes = { vm.scenes(device.id) },
                 onSend = { vm.send(device.id, it) }, onRename = { vm.rename(device.id, it) },
                 onForget = { vm.forget(device.id); deviceId = null },
                 scenesLoading = "scenes:${device.id}" in busy,
                 lastResponse = responses[device.id],
                 now = now,
+                onConnectBluetooth = { connectBluetooth(device.id) },
+                onDisconnectBluetooth = { vm.disconnectBluetooth(device.id) },
+                onBluetoothModel = { vm.bluetoothModel(device.id, it) },
                 onSaveAction = { commands ->
                     editAction = QuickAction("", "${device.displayName} preset", setOf(device.id), commands)
                     actionEditor = true; deviceId = null
                 })
         }
         state.groups.firstOrNull { it.id == groupId }?.let { group ->
-            GroupSheet(group, state.devices.filter { it.id in group.deviceIds }, "group:${group.id}" in busy,
+            GroupSheet(group, state.devices.filter { it.id in group.deviceIds }, "group:${group.id}" in busy || "group-connect:${group.id}" in busy,
                 { groupId = null }, { vm.sendGroup(group.id, it) }, { editGroup = group; groupEditor = true; groupId = null },
-                { group.deviceIds.forEach(vm::scenes) })
+                { group.deviceIds.forEach(vm::scenes) }, { bluetoothAccess { vm.connectBluetoothGroup(group.id) } })
         }
         if (groupEditor) GroupEditor(editGroup, state.devices, { groupEditor = false },
             { name, ids -> vm.saveGroup(editGroup?.id, name, ids); groupEditor = false },
@@ -143,16 +150,16 @@ fun GoveonApp(vm: GoveonViewModel) {
 }
 
 @Composable
-private fun LightsScreen(state: AppState, busy: Set<String>, discover: () -> Unit, settings: () -> Unit, open: (String) -> Unit, send: (String, LightCommand) -> Unit, now: Long) {
+private fun LightsScreen(state: AppState, busy: Set<String>, discover: () -> Unit, discoverNetwork: () -> Unit, settings: () -> Unit, open: (String) -> Unit, send: (String, LightCommand) -> Unit, now: Long, connect: (String) -> Unit) {
     LazyColumn(contentPadding = PaddingValues(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        item { Hero("Your space,\nyour light.", "${state.devices.size} lights · ${state.devices.count { it.ip != null }} local connections", Icons.Outlined.WbTwilight) }
+        item { Hero("Your space,\nyour light.", "${state.devices.size} lights · ${state.devices.count { it.bleConnection == BleConnection.CONNECTED }} Bluetooth connections", Icons.Outlined.WbTwilight) }
         item {
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
                 Text("Your lights", style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
-                FilledTonalButton(onClick = discover, enabled = !state.isScanning) {
-                    if (state.isScanning) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
-                    else Icon(Icons.Outlined.Radar, null, Modifier.size(18.dp))
-                    Spacer(Modifier.width(8.dp)); Text(if (state.isScanning) "Finding…" else "Discover")
+                FilledTonalButton(onClick = discover, enabled = !state.isBluetoothScanning) {
+                    if (state.isBluetoothScanning) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
+                    else Icon(Icons.AutoMirrored.Outlined.BluetoothSearching, null, Modifier.size(18.dp))
+                    Spacer(Modifier.width(8.dp)); Text(if (state.isBluetoothScanning) "Finding…" else "Discover")
                 }
             }
         }
@@ -162,9 +169,9 @@ private fun LightsScreen(state: AppState, busy: Set<String>, discover: () -> Uni
                 Column(Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                     Icon(Icons.Outlined.Lightbulb, null, Modifier.size(40.dp), tint = MaterialTheme.colorScheme.primary)
                     Text("Let there be light", style = MaterialTheme.typography.headlineSmall)
-                    Text("Connect to the same Wi-Fi as your lights. Enable LAN Control in Govee's device settings, then tap Discover.", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Notice("LAN works without an account. An optional Govee Developer API key adds supported cloud devices, scenes, and effects.")
-                    OutlinedButton(onClick = settings, modifier = Modifier.fillMaxWidth()) { Text("Set up cloud access") }
+                    Text("Power on a light, bring your phone nearby, and tap Discover. Connect directly over Bluetooth with no account or API key.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Notice("Connect in Goveon. Bluetooth lights generally use a GATT connection rather than pairing in Android Settings. If a light is busy, close its connection in another app first.")
+                    Button(onClick = discover, enabled = !state.isBluetoothScanning, modifier = Modifier.fillMaxWidth()) { Icon(Icons.AutoMirrored.Outlined.BluetoothSearching, null); Spacer(Modifier.width(8.dp)); Text("Discover nearby lights") }
                 }
             }
         }
@@ -178,9 +185,12 @@ private fun LightsScreen(state: AppState, busy: Set<String>, discover: () -> Uni
                         Text(device.model, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Text(statusText(device, now), style = MaterialTheme.typography.labelMedium,
                             color = if (device.state.online == false) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary)
-                        Text(if (device.ip != null) "LAN · ${device.ip}" else "Cloud", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(connectionLabel(device), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
-                    if (device.id in busy) CircularProgressIndicator(Modifier.size(24.dp), strokeWidth = 2.dp)
+                    if (device.id in busy || "bluetooth:${device.id}" in busy || device.bleConnection == BleConnection.CONNECTING) CircularProgressIndicator(Modifier.size(24.dp), strokeWidth = 2.dp)
+                    else if (device.bleAddress != null && device.bleConnection != BleConnection.CONNECTED) IconButton(onClick = { connect(device.id) }) {
+                        Icon(Icons.Outlined.BluetoothConnected, "Connect to ${device.displayName}", tint = MaterialTheme.colorScheme.primary)
+                    }
                     else if (device.supports("powerSwitch")) IconButton(onClick = { send(device.id, LightCommand.Power(device.state.power != true)) }) {
                         Icon(Icons.Outlined.PowerSettingsNew, if (device.state.power == true) "Turn ${device.displayName} off" else "Turn ${device.displayName} on",
                             tint = if (device.state.power == true) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
@@ -188,7 +198,19 @@ private fun LightsScreen(state: AppState, busy: Set<String>, discover: () -> Uni
                 }
             }
         }
-        if (state.devices.isNotEmpty()) item { Text("State updates when a light responds. Commands sent over LAN do not guarantee the light has changed.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+        if (state.devices.isNotEmpty()) item { Text("State updates when a light reports it. Bluetooth write acknowledgements and LAN delivery may not confirm a physical change; refresh to check the light.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+        item {
+            OutlinedCard(shape = RoundedCornerShape(24.dp)) {
+                Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text("More ways to connect", style = MaterialTheme.typography.titleMedium)
+                    Text("Wi-Fi lights: join their network and enable LAN Control in the device's Govee settings. Cloud access is optional for supported devices and extra effects.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    OutlinedButton(onClick = discoverNetwork, enabled = !state.isScanning, modifier = Modifier.fillMaxWidth()) {
+                        Icon(Icons.Outlined.WifiFind, null, Modifier.size(18.dp)); Spacer(Modifier.width(8.dp)); Text(if (state.isScanning) "Finding Wi-Fi lights…" else "Find Wi-Fi lights")
+                    }
+                    TextButton(onClick = settings, modifier = Modifier.fillMaxWidth()) { Text("Optional cloud access") }
+                }
+            }
+        }
     }
 }
 
@@ -215,11 +237,21 @@ private fun LightOrb(rgb: Int?, power: Boolean?) {
 }
 
 private fun statusText(device: LightDevice, now: Long): String = when {
+    device.bleConnection == BleConnection.CONNECTING -> "Opening Bluetooth connection…"
     device.state.online == false -> if (device.state.hasReading) "Offline · last reading" else "No state response"
     device.state.power == true -> "On${device.state.brightness?.let { " · $it%" } ?: ""}"
     device.state.power == false -> "Off"
     else -> "State not yet reported"
 }.let { if (device.state.online != false && device.state.hasReading && device.state.isStale(now)) "$it · last reading" else it }
+
+internal fun connectionLabel(device: LightDevice): String = when {
+    device.bleConnection == BleConnection.CONNECTED -> "Bluetooth connected"
+    device.bleConnection == BleConnection.CONNECTING -> "Bluetooth connecting"
+    device.bleAddress != null -> "Bluetooth saved${if (device.ip != null) " · LAN available" else ""}"
+    device.ip != null -> "LAN · ${device.ip}"
+    device.cloudAvailable -> "Cloud"
+    else -> "No connection available"
+}
 
 @Composable
 private fun freshnessClock(): State<Long> {

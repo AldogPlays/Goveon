@@ -16,6 +16,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -128,6 +129,8 @@ private fun DeleteDialog(title: String, message: String, dismiss: () -> Unit, de
 
 @Composable
 internal fun SettingsScreen(state: AppState, busy: Set<String>, set: (AppSettings) -> Unit, saveKey: (String) -> Unit) {
+    val context = LocalContext.current
+    val appVersion = remember(context) { runCatching { context.packageManager.getPackageInfo(context.packageName, 0).versionName }.getOrNull().orEmpty() }
     // Credentials deliberately use transient composition state, never saved instance state.
     var apiKey by remember { mutableStateOf("") }
     var removeKey by remember { mutableStateOf(false) }
@@ -145,7 +148,17 @@ internal fun SettingsScreen(state: AppState, busy: Set<String>, set: (AppSetting
         SettingToggle("Wallpaper colors", "Material You dynamic colors on Android 12+", state.settings.dynamicColor) { set(state.settings.copy(dynamicColor = it)) }
         HorizontalDivider()
         Text("Connection", style = MaterialTheme.typography.titleLarge)
-        SettingToggle("Prefer local control", "Use Wi-Fi LAN where supported; cloud is available as a fallback.", state.settings.preferLan) { set(state.settings.copy(preferLan = it)) }
+        Card(shape = RoundedCornerShape(24.dp)) {
+            Row(Modifier.padding(20.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Icon(Icons.Outlined.BluetoothConnected, null, tint = MaterialTheme.colorScheme.primary)
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Bluetooth is built in", style = MaterialTheme.typography.titleMedium)
+                    Text("Discover nearby lights from the Lights tab, then connect in Goveon. No account, API key, or Wi-Fi is needed. Available controls depend on the device's BLE protocol.", style = MaterialTheme.typography.bodySmall)
+                }
+            }
+        }
+        Text("Optional network controls", style = MaterialTheme.typography.titleMedium)
+        SettingToggle("Prefer Wi-Fi over cloud", "Connected Bluetooth lights use Bluetooth first. This setting chooses the network fallback.", state.settings.preferLan) { set(state.settings.copy(preferLan = it)) }
         Card(shape = RoundedCornerShape(24.dp)) {
             Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -163,8 +176,8 @@ internal fun SettingsScreen(state: AppState, busy: Set<String>, set: (AppSetting
             }
         }
         HorizontalDivider()
-        Text("Goveon · 0.1.0", style = MaterialTheme.typography.titleMedium)
-        Text("An independent, lightweight light controller. Your names, groups, and quick actions stay on this device. Device support depends on LAN availability and the capabilities returned by Govee's Developer API.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text("Goveon · $appVersion", style = MaterialTheme.typography.titleMedium)
+        Text("An independent, lightweight light controller. Your names, groups, and quick actions stay on this device. Device support depends on its Bluetooth protocol, LAN availability, and optional cloud capabilities.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Text("Local changes may be accepted without acknowledgement. Refresh a light to check its reported state. Groups send concurrently, but exact hardware synchronization is not guaranteed.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
     if (removeKey) AlertDialog(onDismissRequest = { removeKey = false }, title = { Text("Remove API key?") },
