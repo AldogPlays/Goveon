@@ -5,7 +5,6 @@ import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkCapabilities
 import android.net.wifi.WifiManager
-import android.os.SystemClock
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -18,7 +17,6 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
-import org.json.JSONObject
 import java.net.DatagramPacket
 import java.net.BindException
 import java.net.Inet4Address
@@ -27,10 +25,8 @@ import java.net.InetSocketAddress
 import java.net.MulticastSocket
 import java.net.NetworkInterface
 import java.net.SocketTimeoutException
-import java.net.URL
 import java.io.IOException
 import java.util.concurrent.ConcurrentHashMap
-import javax.net.ssl.HttpsURLConnection
 
 internal class LanTransport(private val context: Context, private val scope: CoroutineScope, private val onDiscovery: (GoveeLanProtocol.Reply.Discovery) -> Unit, private val onState: (String, LightState) -> Unit) {
     private val startMutex = Mutex()
@@ -41,6 +37,7 @@ internal class LanTransport(private val context: Context, private val scope: Cor
     private var socketNetwork: Network? = null
     @Volatile private var receiveFailure: LanFailure? = null
     private val waiting = ConcurrentHashMap<String, CompletableDeferred<LightState>>()
+    private val operations = CommandLocks()
     @Volatile private var allowed = true
 
     private suspend fun start() = startMutex.withLock {
@@ -71,16 +68,20 @@ internal class LanTransport(private val context: Context, private val scope: Cor
                     receiveFailure = null
                     lock = multicastLock
                     receiver = scope.launch(Dispatchers.IO) {
+                    val buffer = ByteArray(8192)
                     while (isActive && !s.isClosed) {
                         try {
-                            val buffer = ByteArray(8192)
                             val packet = DatagramPacket(buffer, buffer.size)
                             s.receive(packet)
                             val ip = packet.address.hostAddress ?: continue
-                            when (val reply = GoveeLanProtocol.parse(String(packet.data, packet.offset, packet.length, Charsets.UTF_8), ip)) {
-                                is GoveeLanProtocol.Reply.Discovery -> onDiscovery(reply)
-                                is GoveeLanProtocol.Reply.Status -> { onState(ip, reply.state); waiting.remove(ip)?.complete(reply.state) }
-                                null -> Unit
+                            val reply = GoveeLanProtocol.parse(String(packet.data, packet.offset, packet.length, Charsets.UTF_8), ip)
+                            synchronized(lifecycleMonitor) {
+                                // A packet received by an old socket must not restore online state after pause/rebind.
+                                if (socket === s && allowed && !s.isClosed) when (reply) {
+                                    is GoveeLanProtocol.Reply.Discovery -> onDiscovery(reply)
+                                    is GoveeLanProtocol.Reply.Status -> { onState(ip, reply.state); waiting.remove(ip)?.complete(reply.state) }
+                                    null -> Unit
+                                }
                             }
                         } catch (_: SocketTimeoutException) { /* Periodic cancellation check. */ }
                         catch (cancelled: CancellationException) { throw cancelled }
@@ -108,8 +109,15 @@ internal class LanTransport(private val context: Context, private val scope: Cor
         delay(900)
         receiveFailure?.let { throw it }
     }
-    suspend fun control(ip: String, command: LightCommand) { start(); send(ip, GoveeLanProtocol.CONTROL_PORT, GoveeLanProtocol.command(command)) }
-    suspend fun query(ip: String): LightState? {
+    suspend fun controlAndQuery(ip: String, command: LightCommand): LightState? = operations.withLock(ip) {
+        // Validate before opening networking; one address owns the entire command/refresh exchange.
+        val packet = GoveeLanProtocol.command(command)
+        start()
+        send(ip, GoveeLanProtocol.CONTROL_PORT, packet)
+        queryUnlocked(ip)
+    }
+    suspend fun query(ip: String): LightState? = operations.withLock(ip) { queryUnlocked(ip) }
+    private suspend fun queryUnlocked(ip: String): LightState? {
         start()
         val answer = CompletableDeferred<LightState>()
         waiting[ip] = answer
@@ -143,7 +151,13 @@ internal class LanTransport(private val context: Context, private val scope: Cor
         }
         error("Wi-Fi has no ready IPv4 interface. Reconnect to the lights' Wi-Fi network and retry.")
     }
-    fun close() = synchronized(lifecycleMonitor) { receiver?.cancel(); receiver = null; socket?.close(); socket = null; socketNetwork = null; receiveFailure = null; lock?.let { if (it.isHeld) it.release() }; lock = null; waiting.values.forEach { it.cancel() }; waiting.clear() }
+    fun close() = synchronized(lifecycleMonitor) {
+        receiver?.cancel(); receiver = null; socket?.close(); socket = null; socketNetwork = null; receiveFailure = null
+        lock?.let { if (it.isHeld) it.release() }; lock = null
+        // A network transition is a per-light failure, not cancellation of an entire group recipe.
+        val failure = LanFailure("Read LAN state", IOException("The Wi-Fi connection closed or changed."))
+        waiting.values.forEach { it.completeExceptionally(failure) }; waiting.clear()
+    }
     fun pause() = synchronized(lifecycleMonitor) { allowed = false; close() }
     fun resume() = synchronized(lifecycleMonitor) { allowed = true }
 }
@@ -183,46 +197,3 @@ internal inline fun <T> lanOperation(operation: String, block: () -> T): T = try
 catch (cancelled: CancellationException) { throw cancelled }
 catch (failure: LanFailure) { throw failure }
 catch (failure: Exception) { throw LanFailure(operation, failure) }
-
-internal class CloudTransport(private val apiKey: () -> String?) {
-    private val throttle = Mutex()
-    private var lastRequest = 0L
-    private val deviceRequests = mutableMapOf<String, Long>()
-    suspend fun devices() = GoveeCloudProtocol.parseDevices(request("/user/devices"))
-    suspend fun state(device: LightDevice) = request("/device/state", GoveeCloudProtocol.devicePayload(device), device.id)
-    suspend fun scenes(device: LightDevice, diy: Boolean) = GoveeCloudProtocol.parseCapabilities(request(if (diy) "/device/diy-scenes" else "/device/scenes", GoveeCloudProtocol.devicePayload(device), device.id).optJSONObject("payload")?.optJSONArray("capabilities")).map { it.copy(staticOptions = emptyList()) }
-    suspend fun control(device: LightDevice, command: LightCommand) {
-        request("/device/control", GoveeCloudProtocol.controlPayload(device, command), device.id)
-    }
-    private suspend fun request(path: String, payload: JSONObject? = null, deviceId: String? = null): JSONObject = withContext(Dispatchers.IO) {
-        val key = requireNotNull(apiKey()?.takeIf { it.isNotBlank() }) { "Add your Govee developer API key in Settings." }
-        throttle.withLock {
-            val now = SystemClock.elapsedRealtime()
-            val wait = maxOf(0L, 100 - (now - lastRequest), if (deviceId != null) 550 - (now - (deviceRequests[deviceId] ?: 0)) else 0)
-            if (wait > 0) delay(wait)
-            lastRequest = SystemClock.elapsedRealtime()
-            if (deviceId != null) deviceRequests[deviceId] = lastRequest
-        }
-        val connection = URL("https://openapi.api.govee.com/router/api/v1$path").openConnection() as HttpsURLConnection
-        try {
-            connection.connectTimeout = 10_000; connection.readTimeout = 10_000
-            connection.setRequestProperty("Govee-API-Key", key)
-            connection.setRequestProperty("Content-Type", "application/json")
-            if (payload != null) {
-                connection.requestMethod = "POST"; connection.doOutput = true
-                val body = GoveeCloudProtocol.requestEnvelope(payload).toString()
-                connection.outputStream.use { it.write(body.toByteArray(Charsets.UTF_8)) }
-            }
-            val code = connection.responseCode
-            require(code in 200..299) { when (code) { 401, 403 -> "Govee rejected the API key."; 429 -> "Govee rate limit reached. Wait before retrying."; else -> "Govee API returned HTTP $code." } }
-            val text = connection.inputStream.bufferedReader().use { reader ->
-                val result = StringBuilder(); val buffer = CharArray(4096)
-                while (true) { val count = reader.read(buffer); if (count < 0) break; require(result.length + count <= 4_000_000) { "Govee response is too large." }; result.append(buffer, 0, count) }
-                result.toString()
-            }
-            val response = JSONObject(text)
-            require(response.optInt("code", 200) == 200) { "Govee API did not accept this request (code ${response.optInt("code")})." }
-            response
-        } finally { connection.disconnect() }
-    }
-}

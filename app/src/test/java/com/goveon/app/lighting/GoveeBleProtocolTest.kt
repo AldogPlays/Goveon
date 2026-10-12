@@ -133,7 +133,6 @@ class GoveeBleProtocolTest {
     @Test fun `payload cannot overwrite the checksum and unsupported controls are blocked`() {
         assertThrows(IllegalArgumentException::class.java) { GoveeBleProtocol.frame(0x33, 1, ByteArray(18)) }
         assertThrows(IllegalArgumentException::class.java) { GoveeBleProtocol.command("common-light", LightCommand.Color(0xFF0000)) }
-        assertThrows(IllegalArgumentException::class.java) { GoveeBleProtocol.command("common-light", LightCommand.Capability("lightScene", "1")) }
     }
     @Test fun `advertisement matching recognizes legacy names and service-only advertisements`() {
         assertTrue(GoveeBleProtocol.isCandidate("ihoment_H6117_1234", emptyList()))

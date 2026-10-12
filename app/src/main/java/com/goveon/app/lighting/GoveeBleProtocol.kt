@@ -71,7 +71,6 @@ object GoveeBleProtocol {
                     (command.kelvin ushr 8).toByte(), command.kelvin.toByte(),
                     (white ushr 16).toByte(), (white ushr 8).toByte(), white.toByte()))
             }
-            else -> error("This Bluetooth control has not been implemented for this profile.")
         }
         return listOf(packet)
     }

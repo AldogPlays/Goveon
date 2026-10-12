@@ -29,9 +29,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.goveon.app.lighting.*
-import org.json.JSONObject
-import org.json.JSONArray
-import org.json.JSONTokener
 import java.text.DateFormat
 import java.util.Date
 import kotlin.math.roundToInt
@@ -41,9 +38,9 @@ internal val coreCapabilities = setOf("powerSwitch", "brightness", "colorRgb", "
 
 @Composable
 internal fun DeviceSheet(device: LightDevice, busy: Boolean, onDismiss: () -> Unit, onRefresh: () -> Unit,
-    onScenes: () -> Unit, onSend: (LightCommand) -> Unit, onRename: (String) -> Unit, onForget: () -> Unit,
-    onSaveAction: (List<LightCommand>) -> Unit, scenesLoading: Boolean = false, lastResponse: CommandResult? = null, now: Long = System.currentTimeMillis(),
-    onConnectBluetooth: () -> Unit = {}, onDisconnectBluetooth: () -> Unit = {}, onBluetoothModel: (String) -> Unit = {}, sessionStatus: BleSessionStatus? = null) {
+    onSend: (LightCommand) -> Unit, onRename: (String) -> Unit, onForget: () -> Unit,
+    onSaveAction: (List<LightCommand>) -> Unit, lastResponse: CommandResult? = null, now: Long = System.currentTimeMillis(),
+    onConnectBluetooth: () -> Unit = {}, onBluetoothModel: (String) -> Unit = {}, sessionStatus: BleSessionStatus? = null) {
     var rename by remember { mutableStateOf(false) }
     var forgetting by remember { mutableStateOf(false) }
     var editingModel by remember { mutableStateOf(false) }
@@ -71,7 +68,7 @@ internal fun DeviceSheet(device: LightDevice, busy: Boolean, onDismiss: () -> Un
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(if (busy) "Updating…" else reportedState(device.state, now), style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
-                IconButton(onClick = onRefresh, enabled = !busy && (device.bleAddress == null || device.bleConnection == BleConnection.CONNECTED || device.ip != null || device.cloudAvailable)) { Icon(Icons.Outlined.Refresh, "Refresh light state", Modifier.size(20.dp)) }
+                IconButton(onClick = onRefresh, enabled = !busy && (device.bleAddress == null || device.bleConnection == BleConnection.CONNECTED || device.ip != null)) { Icon(Icons.Outlined.Refresh, "Refresh light state", Modifier.size(20.dp)) }
             }
             if (busy) LinearProgressIndicator(Modifier.fillMaxWidth())
             if (!busy && feedbackVisible) lastResponse?.let { response ->
@@ -80,15 +77,7 @@ internal fun DeviceSheet(device: LightDevice, busy: Boolean, onDismiss: () -> Un
             }
             if (device.bleAddress != null && coreCapabilities.none { device.supports(it) }) {
                 if (device.bleConnection == BleConnection.CONNECTED) Text("Controls unavailable for this model.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            } else ControlPanel(listOf(device), !busy && (device.bleAddress == null || device.bleConnection == BleConnection.CONNECTED || device.ip != null || device.cloudAvailable), onSend)
-            val extra = device.capabilities.filter { it.instance !in coreCapabilities }
-            if (extra.isNotEmpty()) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text("Scenes & effects", style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
-                    if (device.cloudAvailable) TextButton(onClick = onScenes, enabled = !busy && !scenesLoading) { Text(if (scenesLoading) "Loading…" else "Refresh") }
-                }
-            }
-            extra.forEach { capability -> CapabilityControl(capability, device.state.values[capability.instance], !busy, onSend) }
+            } else ControlPanel(listOf(device), !busy && (device.bleAddress == null || device.bleConnection == BleConnection.CONNECTED || device.ip != null), onSend)
             HorizontalDivider()
             TextButton(onClick = { more = !more }, modifier = Modifier.fillMaxWidth()) {
                 Text("More"); Spacer(Modifier.width(8.dp)); Icon(if (more) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore, null)
@@ -104,7 +93,7 @@ internal fun DeviceSheet(device: LightDevice, busy: Boolean, onDismiss: () -> Un
                     if (device.bleAddress != null) Text("Nearby Bluetooth control without an account.", style = MaterialTheme.typography.bodySmall)
                     device.bleRssi?.let { Text("Last scan signal · $it dBm", style = MaterialTheme.typography.bodySmall) }
                     if (device.state.lastUpdated > 0) Text("Last reported ${DateFormat.getTimeInstance(DateFormat.SHORT).format(Date(device.state.lastUpdated))}", style = MaterialTheme.typography.bodySmall)
-                    if (device.ip != null && device.capability("colorTemperatureK") == null && GoveeBleProtocol.temperatureValues(device.bleProfile).isEmpty())
+                    if (device.ip != null && GoveeBleProtocol.temperatureValues(device.bleProfile).isEmpty())
                         Text("Available white temperatures vary by model.", style = MaterialTheme.typography.bodySmall)
                 }
                 TextButton(onClick = { forgetting = true }, modifier = Modifier.fillMaxWidth()) { Text("Forget this light", color = MaterialTheme.colorScheme.error) }
@@ -134,7 +123,7 @@ internal fun stateCommands(device: LightDevice): List<LightCommand> = buildList 
 }
 
 @Composable
-internal fun GroupSheet(group: LightGroup, devices: List<LightDevice>, busy: Boolean, dismiss: () -> Unit, send: (LightCommand) -> Unit, edit: () -> Unit, loadScenes: () -> Unit, connectBluetooth: () -> Unit,
+internal fun GroupSheet(group: LightGroup, devices: List<LightDevice>, busy: Boolean, dismiss: () -> Unit, send: (LightCommand) -> Unit, edit: () -> Unit, connectBluetooth: () -> Unit,
     failureReport: GroupResult? = null, reviewFailures: () -> Unit = {}, sessions: Map<String, BleSessionStatus> = emptyMap()) {
     ModalBottomSheet(onDismissRequest = dismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
         Column(Modifier.verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
@@ -158,12 +147,8 @@ internal fun GroupSheet(group: LightGroup, devices: List<LightDevice>, busy: Boo
             failureReport?.let { report -> InlineFeedback("${report.failures.size} lights need attention", error = true) {
                 TextButton(onClick = reviewFailures) { Text("Review") }
             } }
-            val ready = devices.any { it.bleAddress == null || it.bleConnection == BleConnection.CONNECTED || it.ip != null || it.cloudAvailable }
+            val ready = devices.any { it.bleAddress == null || it.bleConnection == BleConnection.CONNECTED || it.ip != null }
             ControlPanel(devices, !busy && ready, send)
-            if (devices.all { it.cloudAvailable } && devices.isNotEmpty()) {
-                TextButton(onClick = loadScenes, enabled = !busy) { Text("Load shared scenes") }
-                commonCapabilities(devices).forEach { CapabilityControl(it, null, !busy, send) }
-            }
         }
     }
 }
@@ -209,8 +194,8 @@ internal fun ControlPanel(devices: List<LightDevice>, enabled: Boolean, send: (L
         }
     }
     if (supports("brightness")) {
-        val min = devices.mapNotNull { it.capability("brightness")?.min }.maxOrNull()?.coerceAtLeast(if (devices.any { it.ip != null || GoveeBleProtocol.supports(it.bleProfile, "brightness") }) 1 else 0) ?: 1
-        val max = devices.mapNotNull { it.capability("brightness")?.max }.minOrNull()?.coerceAtMost(100) ?: 100
+        val min = 1
+        val max = 100
         if (min < max) ValueSlider("Brightness", current.brightness ?: 50, min..max, "%", enabled) { send(LightCommand.Brightness(it)) }
     }
     val colorSupported = supports("colorRgb")
@@ -256,9 +241,7 @@ internal fun ControlPanel(devices: List<LightDevice>, enabled: Boolean, send: (L
 
 private fun sharedTemperatureRange(devices: List<LightDevice>): IntRange? {
     val ranges = devices.map { device ->
-        val advertised = device.capability("colorTemperatureK")
-        val ble = GoveeBleProtocol.temperatureRange(device.bleProfile)
-        val deviceRanges = listOfNotNull(ble, if (advertised?.min != null && advertised.max != null) advertised.min..advertised.max else null)
+        val deviceRanges = listOfNotNull(GoveeBleProtocol.temperatureRange(device.bleProfile))
         if (deviceRanges.isEmpty()) {
             if (device.ip != null) 2000..9000 else return null
         } else deviceRanges.maxOf { it.first }..deviceRanges.minOf { it.last }
@@ -271,14 +254,9 @@ private fun sharedTemperatureRange(devices: List<LightDevice>): IntRange? {
 
 private fun sharedTemperatureValues(devices: List<LightDevice>, range: IntRange): List<Int>? {
     val bleLists = devices.map { GoveeBleProtocol.temperatureValues(it.bleProfile) }.filter { it.isNotEmpty() }
-    val quantized = devices.any { device -> device.capability("colorTemperatureK")?.let { JSONObject(it.parametersJson).optJSONObject("range")?.optInt("precision", 1) ?: 1 }?.let { it > 1 } == true }
-    if (bleLists.isEmpty() && !quantized && range.first != range.last) return null
+    if (bleLists.isEmpty() && range.first != range.last) return null
     val candidates = bleLists.firstOrNull() ?: range.toList()
-    return candidates.distinct().sorted().filter { kelvin -> kelvin in range && bleLists.all { kelvin in it } && devices.all { device ->
-        val cap = device.capability("colorTemperatureK")
-        val precision = cap?.let { JSONObject(it.parametersJson).optJSONObject("range")?.optInt("precision", 1) } ?: 1
-        precision <= 1 || (kelvin - (cap?.min ?: 0)) % precision == 0
-    } }
+    return candidates.distinct().sorted().filter { kelvin -> kelvin in range && bleLists.all { kelvin in it } }
 }
 
 @Composable
@@ -350,149 +328,6 @@ private fun ColorControl(initial: Int?, enabled: Boolean, send: (Int) -> Unit) {
                 FilledTonalButton(onClick = { hex.toIntOrNull(16)?.let(send) }, enabled = enabled && hex.length == 6 && hex.toIntOrNull(16) != null) { Text("Apply") }
             }
         }
-    }
-}
-
-@Composable
-internal fun CapabilityControl(capability: LightCapability, current: String?, enabled: Boolean, send: (LightCommand) -> Unit) {
-    var expanded by rememberSaveable(capability.instance) { mutableStateOf(false) }
-    Card(shape = RoundedCornerShape(20.dp), modifier = Modifier.animateContentSize()) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Row(Modifier.fillMaxWidth().clickable { expanded = !expanded }.heightIn(min = 48.dp), verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f)) {
-                    Text(prettyCapability(capability.instance), style = MaterialTheme.typography.titleMedium)
-                    capability.options.firstOrNull { it.valueJson == current }?.let { Text(it.name, style = MaterialTheme.typography.bodySmall, maxLines = 1) }
-                }
-                Icon(if (expanded) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore, if (expanded) "Collapse" else "Expand")
-            }
-            if (expanded) {
-                if (capability.options.isNotEmpty() && JSONObject(capability.parametersJson).optString("dataType").equals("ARRAY", true)) {
-                    ArraySelector(capability.options, enabled, commit = true) { send(LightCommand.Capability(capability.instance, it)) }
-                } else if (capability.options.isNotEmpty()) {
-                    OptionSelector("Select ${prettyCapability(capability.instance)}", capability.options, enabled) { send(LightCommand.Capability(capability.instance, it)) }
-                } else if (capability.min != null && capability.max != null && capability.min < capability.max) {
-                    ValueSlider(prettyCapability(capability.instance), current?.toIntOrNull() ?: capability.min, capability.min..capability.max, "", enabled) {
-                        send(LightCommand.Capability(capability.instance, it.toString()))
-                    }
-                } else if (capability.fields.isNotEmpty()) StructuredCapability(capability, enabled, send)
-                else RawCapability(capability, current, enabled, send)
-            }
-        }
-    }
-}
-
-private fun prettyCapability(value: String) = value.replace(Regex("([a-z])([A-Z])"), "$1 $2").replaceFirstChar { it.uppercase() }
-
-@Composable
-private fun OptionSelector(label: String, options: List<CapabilityOption>, enabled: Boolean, choose: (String) -> Unit) {
-    var open by remember { mutableStateOf(false) }
-    var selected by remember { mutableStateOf<String?>(null) }
-    var query by remember { mutableStateOf("") }
-    Box {
-        OutlinedButton(onClick = { open = true }, enabled = enabled, modifier = Modifier.fillMaxWidth()) {
-            Text(selected ?: label, modifier = Modifier.weight(1f)); Icon(Icons.Outlined.ArrowDropDown, null)
-        }
-    }
-    if (open) AlertDialog(onDismissRequest = { open = false }, title = { Text(label) }, text = {
-        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            OutlinedTextField(query, { query = it }, label = { Text("Search") }, singleLine = true, modifier = Modifier.fillMaxWidth())
-            val filtered = remember(options, query) { options.filter { it.name.contains(query, ignoreCase = true) } }
-            LazyColumn(Modifier.fillMaxWidth().height(280.dp)) {
-                if (filtered.isEmpty()) item { Text("No matching options") }
-                items(filtered) { option -> ListItem(headlineContent = { Text(option.name) }, modifier = Modifier.clickable {
-                    selected = option.name; open = false; choose(option.valueJson)
-                }) }
-            }
-        }
-    }, confirmButton = { TextButton(onClick = { open = false }) { Text("Close") } })
-}
-
-/** Only expose advanced values that every chosen model advertises identically or shares safely. */
-internal fun commonCapabilities(devices: List<LightDevice>): List<LightCapability> {
-    if (devices.isEmpty()) return emptyList()
-    return devices.first().capabilities.filter { it.instance !in coreCapabilities }.mapNotNull { first ->
-        val caps = devices.map { it.capability(first.instance) ?: return@mapNotNull null }
-        if (caps.any { it.type != first.type }) return@mapNotNull null
-        if (caps.all { it.parametersJson == first.parametersJson }) return@mapNotNull first
-        if (first.options.isNotEmpty() && caps.all { it.options.isNotEmpty() }) {
-            val shared = first.options.filter { option -> caps.all { cap -> cap.options.any { it.valueJson == option.valueJson } } }
-            if (shared.isEmpty()) null else first.copy(options = shared)
-        } else if (first.fields.isEmpty() && caps.all { it.min != null && it.max != null && JSONObject(it.parametersJson).optJSONObject("range")?.optInt("precision", 1) == 1 }) {
-            val minimum = caps.maxOf { it.min!! }
-            val maximum = caps.minOf { it.max!! }
-            if (minimum >= maximum) null else first.copy(min = minimum, max = maximum)
-        } else null
-    }
-}
-
-@Composable
-private fun StructuredCapability(capability: LightCapability, enabled: Boolean, send: (LightCommand) -> Unit) {
-    val fields = remember(capability.instance) { mutableStateMapOf<String, String>() }
-    var error by remember { mutableStateOf<String?>(null) }
-    capability.fields.forEach { field ->
-        Text("${prettyCapability(field.name)}${if (field.required) " *" else ""}", style = MaterialTheme.typography.labelLarge)
-        when {
-            field.dataType.equals("ARRAY", true) && field.options.isNotEmpty() -> ArraySelector(field.options, enabled) { fields[field.name] = it }
-            field.options.isNotEmpty() -> OptionSelector("Choose ${field.name}", field.options, enabled) { fields[field.name] = it }
-            field.min != null && field.max != null && field.min < field.max -> {
-                val initial = fields[field.name]?.toIntOrNull() ?: field.min
-                LaunchedEffect(field.name) { if (field.required && field.name !in fields) fields[field.name] = field.min.toString() }
-                ValueSlider(prettyCapability(field.name), initial, field.min..field.max, "", enabled) { fields[field.name] = it.toString() }
-            }
-            else -> OutlinedTextField(fields[field.name] ?: "", { fields[field.name] = it }, label = { Text("${field.name} (${field.dataType})") },
-                supportingText = { Text(if (field.dataType.contains("Array", true)) "JSON array, for example [0,1]" else "Value from this device's schema") }, modifier = Modifier.fillMaxWidth(), enabled = enabled)
-        }
-    }
-    error?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
-    FilledTonalButton(onClick = {
-        try {
-            val json = JSONObject()
-            capability.fields.forEach { field ->
-                val raw = fields[field.name]?.trim().orEmpty()
-                require(!field.required || raw.isNotEmpty()) { "Choose ${field.name}." }
-                if (raw.isNotEmpty()) json.put(field.name, if (field.dataType.equals("STRING", true)) raw.removeSurrounding("\"") else JSONTokener(raw).nextValue())
-            }
-            send(LightCommand.Capability(capability.instance, json.toString())); error = null
-        } catch (e: Exception) { error = e.message ?: "Check the values." }
-    }, enabled = enabled, modifier = Modifier.fillMaxWidth()) { Text("Apply ${prettyCapability(capability.instance)}") }
-    RawCapability(capability, null, enabled, send)
-}
-
-@Composable
-private fun ArraySelector(options: List<CapabilityOption>, enabled: Boolean, commit: Boolean = false, choose: (String) -> Unit) {
-    var selected by remember { mutableStateOf<Set<String>>(emptySet()) }
-    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        options.forEach { option -> FilterChip(selected = option.valueJson in selected, enabled = enabled, onClick = {
-            selected = if (option.valueJson in selected) selected - option.valueJson else selected + option.valueJson
-            val array = JSONArray()
-            selected.forEach { array.put(JSONTokener(it).nextValue()) }
-            if (!commit) choose(array.toString())
-        }, label = { Text(option.name) }) }
-    }
-    if (commit) FilledTonalButton(onClick = {
-        val array = JSONArray()
-        selected.forEach { array.put(JSONTokener(it).nextValue()) }
-        choose(array.toString())
-    }, enabled = enabled && selected.isNotEmpty()) { Text("Apply selected") }
-}
-
-@Composable
-private fun RawCapability(capability: LightCapability, current: String?, enabled: Boolean, send: (LightCommand) -> Unit) {
-    var open by rememberSaveable(capability.instance) { mutableStateOf(false) }
-    var raw by remember(capability.instance) { mutableStateOf(current ?: "") }
-    var error by remember { mutableStateOf<String?>(null) }
-    TextButton(onClick = { open = !open }) { Text(if (open) "Hide advanced JSON" else "Advanced JSON value") }
-    if (open) {
-        Text("Supply the value described by this device's capability schema.", style = MaterialTheme.typography.bodySmall)
-        Text(capability.parametersJson, style = MaterialTheme.typography.bodySmall)
-        OutlinedTextField(raw, { raw = it }, label = { Text("JSON value") }, isError = error != null, supportingText = { error?.let { Text(it) } }, modifier = Modifier.fillMaxWidth(), minLines = 2)
-        OutlinedButton(onClick = {
-            try {
-                require(raw.isNotBlank()) { "Enter a JSON value." }
-                JSONTokener(raw).nextValue()
-                send(LightCommand.Capability(capability.instance, raw)); error = null
-            } catch (e: Exception) { error = "Enter valid JSON: ${e.message}" }
-        }, enabled = enabled) { Text("Send value") }
     }
 }
 

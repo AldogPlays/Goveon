@@ -51,12 +51,13 @@ jobs:
           cache-read-only: ${{ github.event_name == 'pull_request' }}
           validate-wrappers: true
 
-      - name: Test, lint, and assemble debug APK
+      - name: Test, lint, and assemble debug and release variants
         shell: bash
         run: |
           bash ./gradlew --no-daemon --console=plain --max-workers=2 --continue \
             -Pkotlin.compiler.execution.strategy=in-process \
-            :app:testDebugUnitTest :app:lintDebug :app:assembleDebug
+            :app:testDebugUnitTest :app:lintDebug :app:assembleDebug \
+            :app:testReleaseUnitTest :app:lintRelease :app:assembleRelease
           cd app/build/outputs/apk/debug
           sha256sum app-debug.apk > app-debug.apk.sha256
 
@@ -77,6 +78,8 @@ jobs:
           path: |
             app/build/reports/tests/
             app/build/reports/lint-results-debug.*
+            app/build/reports/lint-results-release.*
             app/build/test-results/testDebugUnitTest/
+            app/build/test-results/testReleaseUnitTest/
           if-no-files-found: warn
           retention-days: 14

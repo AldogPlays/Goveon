@@ -32,7 +32,6 @@ internal fun failureSummary(message: String): String = when {
     message.contains("connect", true) -> "Reconnect the light and try again."
     message.contains("offline", true) || message.contains("no LAN reply", true) -> "The light is unavailable. Check its power and connection."
     message.contains("range", true) || message.contains("precision", true) -> "Choose a value within this light's supported range."
-    message.contains("API key", true) -> "Add an API key for optional cloud control."
     else -> "Couldn't complete that action. Try again."
 }
 

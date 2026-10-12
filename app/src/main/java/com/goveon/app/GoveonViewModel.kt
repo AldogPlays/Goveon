@@ -47,7 +47,7 @@ class GoveonViewModel(application: Application) : AndroidViewModel(application) 
     private fun work(key: String, block: suspend () -> Unit) {
         if (key in active.value) return
         active.update { it + key }
-        // Recipe/catalog serialization and preference edits also belong off the UI thread.
+        // Recipe serialization and preference edits also belong off the UI thread.
         viewModelScope.launch(Dispatchers.IO) {
             try { block() } catch (e: CancellationException) { throw e } catch (e: Exception) {
                 Diagnostics.failure("Action", e)
@@ -69,25 +69,9 @@ class GoveonViewModel(application: Application) : AndroidViewModel(application) 
     fun disconnectBluetooth(id: String) = work("bluetooth:$id") {
         repository.disconnectBluetooth(id)
     }
-    fun connectBluetoothGroup(groupId: String) = work("group-connect:$groupId") {
-        val group = state.value.groups.firstOrNull { it.id == groupId } ?: error("This group is no longer saved.")
-        val devices = state.value.devices.filter { it.id in group.deviceIds && it.bleAddress != null && it.bleConnection != BleConnection.CONNECTED }
-        if (devices.isEmpty()) return@work
-        // Establish GATT links one at a time; group commands fan out to established sessions.
-        val results = devices.map { device ->
-            repository.connectBluetooth(device.id).also { result -> responses.update { it + (device.id to result) }; Diagnostics.command(result) }
-        }
-        val result = GroupResult(results)
-        report.value = result.takeIf { it.failures.isNotEmpty() }
-    }
     fun refresh(id: String) = work(id) {
         val result = repository.refresh(id)
         responses.update { it + (id to result) }
-        Diagnostics.command(result)
-    }
-    fun scenes(id: String) = work("scenes:$id") {
-        val result = repository.loadScenes(id)
-        if (!result.successful) responses.update { it + (id to result) }
         Diagnostics.command(result)
     }
     fun pauseNetworking() = repository.pauseNetworking()
@@ -125,8 +109,4 @@ class GoveonViewModel(application: Application) : AndroidViewModel(application) 
         if (result.failures.isEmpty()) notices.emit("Quick action sent.")
     }
     fun settings(settings: AppSettings) = work("settings") { repository.setSettings(settings) }
-    fun apiKey(key: String) = work("api-key") {
-        repository.setApiKey(key.trim())
-        notices.emit(if (key.isBlank()) "API key removed." else "API key saved.")
-    }
 }
