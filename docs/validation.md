@@ -1,28 +1,29 @@
-# Validated milestone: 0.3.0 alpha 1
+# Validated release: 1.0.0
 
-Validated headlessly on October 12, 2026. Android hardware, radio behavior and on-device visual behavior have not been verified. ADB 37.0.1 is available. Only its version was checked during this milestone; no phone was contacted, installed to or launched on.
+Validated headlessly on October 12, 2026. No phone was enumerated, contacted, installed to or launched on. ADB 37.0.1 is available; only its version was checked. Its Windows preference-directory lookup requires a normal Windows process rather than this restricted execution sandbox.
 
 | Check | Result |
 | --- | --- |
-| `:app:testDebugUnitTest` | Passed: 55 tests, 0 failures/errors/skips |
-| `:app:lintDebug` | Passed: 0 errors; 10 advisory warnings (5 newer dependency versions, 4 KTX style suggestions, 1 API-level permission-flag advisory) |
-| `:app:assembleDebug` | Passed; Kotlin, resources, manifest, R8 shrinking and APK packaging |
-| `apksigner verify --verbose` | Verified; one debug signer; APK Signature Scheme v2 |
-| `aapt dump badging` | `com.goveon.app`, version code 3 / name 0.3.0, minimum API 26, target/compile API 35 |
-| `scripts/check-public-files.ps1 -History` | Passed; tracked and non-ignored source plus reachable commit identities checked |
-| APK metadata/DEX/resource privacy scan | Passed; no matching personal filesystem paths, personal email or GitHub token patterns |
-| Evidence index | 164 unique records; all 74 report references resolve to indexed records |
+| Debug and release JVM tests | Each passed 64 tests, 0 failures/errors/skips |
+| Debug and release Android lint | Each passed, 0 errors; 9 advisory warnings: 5 newer dependency versions, 3 KTX suggestions, 1 API-level permission-flag advisory |
+| Debug and release assembly | Passed: Kotlin, manifest, resources, R8, shrinking, packaging and release resource optimization |
+| `apksigner verify --verbose` | Verified: one signer, APK Signature Schemes v2 and v3 |
+| `zipalign -c -P 16 4` | Passed on the final signed APK |
+| APK package/flags | `com.goveon.app`, code 4 / name 1.0.0, min API 26, target/compile API 35; not debuggable |
+| Previous signer comparison | Same certificate as the locally released 0.3.0 APK |
+| Public-file privacy guard | Passed on source and reachable commit identities |
+| APK metadata/DEX/resource scan | No matching personal filesystem paths, personal emails, GitHub token patterns or retired cloud endpoint/transport classes |
 
-The 20 Bluetooth protocol tests cover recovered UUID roles, exact padded/XOR frames, automatic family selection, both brightness scales, native-white frames/ranges, capability gating, read-only probes, acknowledgement semantics and malformed packets. Eleven deterministic coroutine tests cover automatic page ownership, cancellation, background release, bounded retries, stable-connection reset and terminal failures; three tests distinguish ATT callback errors from Android write-submission errors. Two tests cover diagnostic redaction. Four LAN transport tests exercise actual loopback UDP, network failures, cleanup and cancellation. The existing 15 tests cover LAN/cloud serialization, capabilities, state semantics, groups, scenes and quick actions.
+The 64 tests comprise 20 Bluetooth protocol tests, 11 automatic-session coroutine tests, 3 BLE failure-policy tests, 2 diagnostic-redaction tests, 7 LAN/group protocol tests, 4 real loopback UDP tests, 10 persistence/migration tests and 7 command-execution tests. They cover exact frames and model-dependent brightness/CCT, capability gating, retries/lifecycle cancellation, partial LAN replies, group failure isolation, local-only upgrades, corrupt records, invalid recipes, per-target ordering and independent-target concurrency.
 
-The packaged APK is `artifacts/goveon-0.3.0-alpha.1.apk`, **7,246,097 bytes** (6.91 MiB). Its SHA-256 is:
+The release APK uses the optimized, obfuscated, non-debuggable release variant. Its application source revision is `709d21db1c3aa9aff1da4ca2655108b8461e4a83`; the subsequent release-record commit changes only documentation/checksum and ignores detached signing artifacts. The final artifact is `artifacts/goveon-1.0.0.apk`, **1,375,419 bytes** (1.31 MiB). SHA-256:
 
 ```text
-d9f11c2aa19858c57f50f7405292589b3a75630dd3016e515ed23afbee07c856
+77f9997d82bfa4905a30e7460a9fef43cc171ad1c367d2f44112b00023317135
 ```
 
-The artifact is debug-signed for manual testing and uses code/resource shrinking. Its signing certificate matches the locally released 0.2.0 APK, allowing an in-place update that preserves app data. Debuggable R8 builds retain debug behavior and disable aggressive optimization/obfuscation. A newer SDK command-line-tools XML-version advisory and the deprecated `ConnectivityManager.allNetworks` compiler warning remain; neither prevented compilation or packaging. Production signing is not configured.
+It is signed offline with the previous local certificate for in-place update continuity. The certificate is labelled Android Debug; the private keystore is ignored and is not published. Fresh Gradle release builds are unsigned until signed. The packaging script accepts passwords only through transient environment variables, verifies the requested version, aligns and signs, and produces the checksum. CI validates both variants and uploads only its separately signed debug APK for development; that certificate/checksum need not match the release asset.
 
-GitHub CI repeats the public-file guard, tests, lint and assembly. Its APK uses the runner's debug identity, so its checksum/signature need not match this locally packaged release APK.
+The original SDK XML-version advisory and deprecated `ConnectivityManager.allNetworks` warning remain. Neither prevents compilation or packaging. R8 optimizes the release build; successful JVM tests do not execute the optimized APK on a phone.
 
-The [hardware checklist](testing.md) covers automatic connections, reconnection, overlapping quick actions, permissions, native-white output, 1/50/100% brightness comparisons, group timing, lifecycle cleanup and visual behavior. The [Bluetooth investigation](ble-protocol.md) confirms the native CCT encoding and separates static evidence from physical firmware acceptance. Authentication, provisioning and advanced Bluetooth effects remain unsupported. In particular, the traced H6006 flow sends byte 100 at 100%; the separate H6005 flow sends byte 254. Physical light output and the reason for the reported H6006 dimness are not established by JVM tests or decompilation. Compare native White and RGB white on hardware before claiming that maximum brightness is fixed.
+The [hardware checklist](testing.md) includes upgrade preservation, Android credential cleanup, automatic Bluetooth connections/reconnection, overlapping actions, native White, brightness comparisons, foreground/background transitions and LAN changes. The user reports the earlier Bluetooth implementation works on their lights; this release's optimized APK, storage cleanup and firmware/radio variations still need manual verification. No local scenes, account authentication or provisioning protocols are fabricated. [BLE evidence](ble-protocol.md) documents recovered family coverage and remaining limits.

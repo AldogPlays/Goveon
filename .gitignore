@@ -12,5 +12,6 @@ references/
 *.jks
 *.keystore
 artifacts/*.apk
+artifacts/*.apk.idsig
 docs/evidence/*.json
 !gradle/wrapper/gradle-wrapper.jar
