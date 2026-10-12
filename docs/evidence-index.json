@@ -1,0 +1,952 @@
+[
+  {
+    "evidence_id": "ev_a6e0d5e12ce3e9adc0e30ccc7539203d49d7e83e4ba7efe6dab1e313905455bd",
+    "operation": "inspect_android_method",
+    "class": "com.govee.base2light.ble.controller.AbsSingleController",
+    "method": "f",
+    "overload_index": 0,
+    "artifact_sha256": "833b42b39fc1c68a807adaa37fb8261ee13f52dee85c142882c6e09e7ec2d452",
+    "authority": "shipped-artifact",
+    "confidence": "derived",
+    "source_status": "complete",
+    "representation": "java",
+    "limitations": [
+      "Static decompiler observations do not establish runtime behavior; the APK is never executed.",
+      "Method signatures use provider display types; exact DEX descriptors and instruction offsets are unavailable. Overload indices are local to this engine and artifact.",
+      "Class inventories use parsed metadata before code generation, including synthetic members that may be omitted from decompiled source. Source positions remain unknown.",
+      "Manifest summary fields are extracted by the upstream engine; decoded XML is retained for verification. APK signatures, split APKs, native libraries and Android runtime capture are not verified by this provider."
+    ],
+    "local_record": "docs/evidence/AbsSingleController-f.json"
+  },
+  {
+    "evidence_id": "ev_e413a8eed39404d6a5815af45ecc8b4186f1c3f8bc33b9ec5262b855fbf87de8",
+    "operation": "inspect_android_method",
+    "class": "com.govee.base2light.ble.controller.AbsSingleController",
+    "method": "g",
+    "overload_index": 0,
+    "artifact_sha256": "833b42b39fc1c68a807adaa37fb8261ee13f52dee85c142882c6e09e7ec2d452",
+    "authority": "shipped-artifact",
+    "confidence": "derived",
+    "source_status": "complete",
+    "representation": "java",
+    "limitations": [
+      "Static decompiler observations do not establish runtime behavior; the APK is never executed.",
+      "Method signatures use provider display types; exact DEX descriptors and instruction offsets are unavailable. Overload indices are local to this engine and artifact.",
+      "Class inventories use parsed metadata before code generation, including synthetic members that may be omitted from decompiled source. Source positions remain unknown.",
+      "Manifest summary fields are extracted by the upstream engine; decoded XML is retained for verification. APK signatures, split APKs, native libraries and Android runtime capture are not verified by this provider."
+    ],
+    "local_record": "docs/evidence/AbsSingleController-g.json"
+  },
+  {
+    "evidence_id": "ev_04bc7f396a93868131410e13de40d0877c0ed5f9850e8af89c0684956b55b45e",
+    "operation": "inspect_android_method",
+    "class": "com.govee.base2light.ble.controller.AbsSingleController",
+    "method": "getProType",
+    "overload_index": 0,
+    "artifact_sha256": "833b42b39fc1c68a807adaa37fb8261ee13f52dee85c142882c6e09e7ec2d452",
+    "authority": "shipped-artifact",
+    "confidence": "derived",
+    "source_status": "complete",
+    "representation": "java",
+    "limitations": [
+      "Static decompiler observations do not establish runtime behavior; the APK is never executed.",
+      "Method signatures use provider display types; exact DEX descriptors and instruction offsets are unavailable. Overload indices are local to this engine and artifact.",
+      "Class inventories use parsed metadata before code generation, including synthetic members that may be omitted from decompiled source. Source positions remain unknown.",
+      "Manifest summary fields are extracted by the upstream engine; decoded XML is retained for verification. APK signatures, split APKs, native libraries and Android runtime capture are not verified by this provider."
+    ],
+    "local_record": "docs/evidence/AbsSingleController-getProType.json"
+  },
+  {
+    "evidence_id": "ev_4bb46854eb3604a1890da64bce480eb29da31891a17c0c2333d95c10c67f6c42",
+    "operation": "inspect_android_method",
+    "class": "com.govee.base2light.ble.controller.AbsSingleController",
+    "method": "p",
+    "overload_index": 0,
+    "artifact_sha256": "833b42b39fc1c68a807adaa37fb8261ee13f52dee85c142882c6e09e7ec2d452",
+    "authority": "shipped-artifact",
+    "confidence": "derived",
+    "source_status": "complete",
+    "representation": "java",
+    "limitations": [
+      "Static decompiler observations do not establish runtime behavior; the APK is never executed.",
+      "Method signatures use provider display types; exact DEX descriptors and instruction offsets are unavailable. Overload indices are local to this engine and artifact.",
+      "Class inventories use parsed metadata before code generation, including synthetic members that may be omitted from decompiled source. Source positions remain unknown.",
+      "Manifest summary fields are extracted by the upstream engine; decoded XML is retained for verification. APK signatures, split APKs, native libraries and Android runtime capture are not verified by this provider."
+    ],
+    "local_record": "docs/evidence/AbsSingleController-p.json"
+  },
+  {
+    "evidence_id": "ev_57043bbb9e8799d14137ad659a6dd79aca65b5fddc7d32587d26e4b1c4aec3d7",
+    "operation": "inspect_android_class",
+    "class": "com.govee.base2light.ble.controller.AbsSingleController",
+    "method": null,
+    "overload_index": null,
+    "artifact_sha256": "833b42b39fc1c68a807adaa37fb8261ee13f52dee85c142882c6e09e7ec2d452",
+    "authority": "shipped-artifact",
+    "confidence": "observed",
+    "source_status": null,
+    "representation": null,
+    "limitations": [
+      "Static decompiler observations do not establish runtime behavior; the APK is never executed.",
+      "Method signatures use provider display types; exact DEX descriptors and instruction offsets are unavailable. Overload indices are local to this engine and artifact.",
+      "Class inventories use parsed metadata before code generation, including synthetic members that may be omitted from decompiled source. Source positions remain unknown.",
+      "Manifest summary fields are extracted by the upstream engine; decoded XML is retained for verification. APK signatures, split APKs, native libraries and Android runtime capture are not verified by this provider."
+    ],
+    "local_record": "docs/evidence/AbsSingleController.json"
+  },
+  {
+    "evidence_id": "ev_a0ae785799395c678b1ef31cf758e13111a17fbf2f6394f7269e4bb7a2f52ef2",
+    "operation": "inspect_android_method",
+    "class": "com.govee.common.params.BleCommUUID",
+    "method": "a",
+    "overload_index": 0,
+    "artifact_sha256": "833b42b39fc1c68a807adaa37fb8261ee13f52dee85c142882c6e09e7ec2d452",
+    "authority": "shipped-artifact",
+    "confidence": "derived",
+    "source_status": "complete",
+    "representation": "java",
+    "limitations": [
+      "Static decompiler observations do not establish runtime behavior; the APK is never executed.",
+      "Method signatures use provider display types; exact DEX descriptors and instruction offsets are unavailable. Overload indices are local to this engine and artifact.",
+      "Class inventories use parsed metadata before code generation, including synthetic members that may be omitted from decompiled source. Source positions remain unknown.",
+      "Manifest summary fields are extracted by the upstream engine; decoded XML is retained for verification. APK signatures, split APKs, native libraries and Android runtime capture are not verified by this provider."
+    ],
+    "local_record": "docs/evidence/BleCommUUID-a.json"
+  },
+  {
+    "evidence_id": "ev_38de0e5d3d39901adcce58900a7d5fd68ee15d95769878b28e160aa630a15f86",
+    "operation": "inspect_android_method",
+    "class": "com.govee.common.params.BleCommUUID",
+    "method": "b",
+    "overload_index": 0,
+    "artifact_sha256": "833b42b39fc1c68a807adaa37fb8261ee13f52dee85c142882c6e09e7ec2d452",
+    "authority": "shipped-artifact",
+    "confidence": "derived",
+    "source_status": "complete",
+    "representation": "java",
+    "limitations": [
+      "Static decompiler observations do not establish runtime behavior; the APK is never executed.",
+      "Method signatures use provider display types; exact DEX descriptors and instruction offsets are unavailable. Overload indices are local to this engine and artifact.",
+      "Class inventories use parsed metadata before code generation, including synthetic members that may be omitted from decompiled source. Source positions remain unknown.",
+      "Manifest summary fields are extracted by the upstream engine; decoded XML is retained for verification. APK signatures, split APKs, native libraries and Android runtime capture are not verified by this provider."
+    ],
+    "local_record": "docs/evidence/BleCommUUID-b.json"
+  },
+  {
+    "evidence_id": "ev_2c497ca6021a93a08f0c9253ea58adedd2bd1e9a7ab8a8b64447e391d88e2bda",
+    "operation": "inspect_android_method",
+    "class": "com.govee.common.params.BleCommUUID",
+    "method": "<clinit>",
+    "overload_index": 0,
+    "artifact_sha256": "833b42b39fc1c68a807adaa37fb8261ee13f52dee85c142882c6e09e7ec2d452",
+    "authority": "shipped-artifact",
+    "confidence": "derived",
+    "source_status": "complete",
+    "representation": "java",
+    "limitations": [
+      "Static decompiler observations do not establish runtime behavior; the APK is never executed.",
+      "Method signatures use provider display types; exact DEX descriptors and instruction offsets are unavailable. Overload indices are local to this engine and artifact.",
+      "Class inventories use parsed metadata before code generation, including synthetic members that may be omitted from decompiled source. Source positions remain unknown.",
+      "Manifest summary fields are extracted by the upstream engine; decoded XML is retained for verification. APK signatures, split APKs, native libraries and Android runtime capture are not verified by this provider."
+    ],
+    "local_record": "docs/evidence/BleCommUUID-clinit.json"
+  },
+  {
+    "evidence_id": "ev_7915c6483c617c9a99b114e2c696049f591165443caeae971eed2765e82a795b",
+    "operation": "inspect_android_class",
+    "class": "com.govee.common.params.BleCommUUID",
+    "method": null,
+    "overload_index": null,
+    "artifact_sha256": "833b42b39fc1c68a807adaa37fb8261ee13f52dee85c142882c6e09e7ec2d452",
+    "authority": "shipped-artifact",
+    "confidence": "observed",
+    "source_status": null,
+    "representation": null,
+    "limitations": [
+      "Static decompiler observations do not establish runtime behavior; the APK is never executed.",
+      "Method signatures use provider display types; exact DEX descriptors and instruction offsets are unavailable. Overload indices are local to this engine and artifact.",
+      "Class inventories use parsed metadata before code generation, including synthetic members that may be omitted from decompiled source. Source positions remain unknown.",
+      "Manifest summary fields are extracted by the upstream engine; decoded XML is retained for verification. APK signatures, split APKs, native libraries and Android runtime capture are not verified by this provider."
+    ],
+    "local_record": "docs/evidence/BleCommUUID.json"
+  },
+  {
+    "evidence_id": "ev_6cd8e92751ddc3ae0f45ad6d23da62f3712b5cc2ffaa2f47e20137f45c7c4a57",
+    "operation": "inspect_android_method",
+    "class": "com.govee.ble.scan.BleScanCallbackImp21",
+    "method": "d",
+    "overload_index": 0,
+    "artifact_sha256": "833b42b39fc1c68a807adaa37fb8261ee13f52dee85c142882c6e09e7ec2d452",
+    "authority": "shipped-artifact",
+    "confidence": "derived",
+    "source_status": "complete",
+    "representation": "java",
+    "limitations": [
+      "Static decompiler observations do not establish runtime behavior; the APK is never executed.",
+      "Method signatures use provider display types; exact DEX descriptors and instruction offsets are unavailable. Overload indices are local to this engine and artifact.",
+      "Class inventories use parsed metadata before code generation, including synthetic members that may be omitted from decompiled source. Source positions remain unknown.",
+      "Manifest summary fields are extracted by the upstream engine; decoded XML is retained for verification. APK signatures, split APKs, native libraries and Android runtime capture are not verified by this provider."
+    ],
+    "local_record": "docs/evidence/BleScanCallbackImp21-d.json"
+  },
+  {
+    "evidence_id": "ev_50fb8b70c402d68cefb756e3005f6c96c24965f39c4c9f38ba79957bdc3f9617",
+    "operation": "inspect_android_method",
+    "class": "com.govee.ble.scan.BleScanCallbackImp21",
+    "method": "f",
+    "overload_index": 0,
+    "artifact_sha256": "833b42b39fc1c68a807adaa37fb8261ee13f52dee85c142882c6e09e7ec2d452",
+    "authority": "shipped-artifact",
+    "confidence": "derived",
+    "source_status": "complete",
+    "representation": "java",
+    "limitations": [
+      "Static decompiler observations do not establish runtime behavior; the APK is never executed.",
+      "Method signatures use provider display types; exact DEX descriptors and instruction offsets are unavailable. Overload indices are local to this engine and artifact.",
+      "Class inventories use parsed metadata before code generation, including synthetic members that may be omitted from decompiled source. Source positions remain unknown.",
+      "Manifest summary fields are extracted by the upstream engine; decoded XML is retained for verification. APK signatures, split APKs, native libraries and Android runtime capture are not verified by this provider."
+    ],
+    "local_record": "docs/evidence/BleScanCallbackImp21-f.json"
+  },
+  {
+    "evidence_id": "ev_7bb932132b47d35ead5385ad064bec9b7b7d3fc87036f928c3466aa24e0735b2",
+    "operation": "inspect_android_method",
+    "class": "com.govee.ble.scan.BleScanCallbackImp21",
+    "method": "startBleScan",
+    "overload_index": 0,
+    "artifact_sha256": "833b42b39fc1c68a807adaa37fb8261ee13f52dee85c142882c6e09e7ec2d452",
+    "authority": "shipped-artifact",
+    "confidence": "derived",
+    "source_status": "complete",
+    "representation": "java",
+    "limitations": [
+      "Static decompiler observations do not establish runtime behavior; the APK is never executed.",
+      "Method signatures use provider display types; exact DEX descriptors and instruction offsets are unavailable. Overload indices are local to this engine and artifact.",
+      "Class inventories use parsed metadata before code generation, including synthetic members that may be omitted from decompiled source. Source positions remain unknown.",
+      "Manifest summary fields are extracted by the upstream engine; decoded XML is retained for verification. APK signatures, split APKs, native libraries and Android runtime capture are not verified by this provider."
+    ],
+    "local_record": "docs/evidence/BleScanCallbackImp21-startBleScan.json"
+  },
+  {
+    "evidence_id": "ev_a22906942db2c6a00a9d76badc0fcf63d300641b459f6733fdd3384c18d0f373",
+    "operation": "inspect_android_class",
+    "class": "com.govee.ble.scan.BleScanCallbackImp21",
+    "method": null,
+    "overload_index": null,
+    "artifact_sha256": "833b42b39fc1c68a807adaa37fb8261ee13f52dee85c142882c6e09e7ec2d452",
+    "authority": "shipped-artifact",
+    "confidence": "observed",
+    "source_status": null,
+    "representation": null,
+    "limitations": [
+      "Static decompiler observations do not establish runtime behavior; the APK is never executed.",
+      "Method signatures use provider display types; exact DEX descriptors and instruction offsets are unavailable. Overload indices are local to this engine and artifact.",
+      "Class inventories use parsed metadata before code generation, including synthetic members that may be omitted from decompiled source. Source positions remain unknown.",
+      "Manifest summary fields are extracted by the upstream engine; decoded XML is retained for verification. APK signatures, split APKs, native libraries and Android runtime capture are not verified by this provider."
+    ],
+    "local_record": "docs/evidence/BleScanCallbackImp21.json"
+  },
+  {
+    "evidence_id": "ev_b5ff2a51e7f29870b2d9671c41981bde6e79f5b611630153816e078247ad2f6f",
+    "operation": "inspect_android_method",
+    "class": "com.govee.base2kt.utils.BleUtils.Companion",
+    "method": "i",
+    "overload_index": 0,
+    "artifact_sha256": "833b42b39fc1c68a807adaa37fb8261ee13f52dee85c142882c6e09e7ec2d452",
+    "authority": "shipped-artifact",
+    "confidence": "derived",
+    "source_status": "complete",
+    "representation": "java",
+    "limitations": [
+      "Static decompiler observations do not establish runtime behavior; the APK is never executed.",
+      "Method signatures use provider display types; exact DEX descriptors and instruction offsets are unavailable. Overload indices are local to this engine and artifact.",
+      "Class inventories use parsed metadata before code generation, including synthetic members that may be omitted from decompiled source. Source positions remain unknown.",
+      "Manifest summary fields are extracted by the upstream engine; decoded XML is retained for verification. APK signatures, split APKs, native libraries and Android runtime capture are not verified by this provider."
+    ],
+    "local_record": "docs/evidence/BleUtils-Companion-i.json"
+  },
+  {
+    "evidence_id": "ev_170fbc3c3ddfb05e6ef7e8c6c6dc86c012ce57303d1a79e54add3c4177467435",
+    "operation": "inspect_android_method",
+    "class": "com.govee.base2kt.utils.BleUtils.Companion",
+    "method": "m",
+    "overload_index": 0,
+    "artifact_sha256": "833b42b39fc1c68a807adaa37fb8261ee13f52dee85c142882c6e09e7ec2d452",
+    "authority": "shipped-artifact",
+    "confidence": "derived",
+    "source_status": "complete",
+    "representation": "java",
+    "limitations": [
+      "Static decompiler observations do not establish runtime behavior; the APK is never executed.",
+      "Method signatures use provider display types; exact DEX descriptors and instruction offsets are unavailable. Overload indices are local to this engine and artifact.",
+      "Class inventories use parsed metadata before code generation, including synthetic members that may be omitted from decompiled source. Source positions remain unknown.",
+      "Manifest summary fields are extracted by the upstream engine; decoded XML is retained for verification. APK signatures, split APKs, native libraries and Android runtime capture are not verified by this provider."
+    ],
+    "local_record": "docs/evidence/BleUtils-Companion-m.json"
+  },
+  {
+    "evidence_id": "ev_7c16c2977a49399737e8bba5ef4501eec18f8692074caef13feacb6cf7e095f7",
+    "operation": "inspect_android_method",
+    "class": "com.govee.base2kt.utils.BleUtils.Companion",
+    "method": "n",
+    "overload_index": 0,
+    "artifact_sha256": "833b42b39fc1c68a807adaa37fb8261ee13f52dee85c142882c6e09e7ec2d452",
+    "authority": "shipped-artifact",
+    "confidence": "derived",
+    "source_status": "complete",
+    "representation": "java",
+    "limitations": [
+      "Static decompiler observations do not establish runtime behavior; the APK is never executed.",
+      "Method signatures use provider display types; exact DEX descriptors and instruction offsets are unavailable. Overload indices are local to this engine and artifact.",
+      "Class inventories use parsed metadata before code generation, including synthetic members that may be omitted from decompiled source. Source positions remain unknown.",
+      "Manifest summary fields are extracted by the upstream engine; decoded XML is retained for verification. APK signatures, split APKs, native libraries and Android runtime capture are not verified by this provider."
+    ],
+    "local_record": "docs/evidence/BleUtils-Companion-n.json"
+  },
+  {
+    "evidence_id": "ev_17e615739cb8869a7ad147169f77e9a5938694573f5e936e1b4af19d8375820d",
+    "operation": "inspect_android_method",
+    "class": "com.govee.base2kt.utils.BleUtils",
+    "method": "e",
+    "overload_index": 0,
+    "artifact_sha256": "833b42b39fc1c68a807adaa37fb8261ee13f52dee85c142882c6e09e7ec2d452",
+    "authority": "shipped-artifact",
+    "confidence": "derived",
+    "source_status": "complete",
+    "representation": "java",
+    "limitations": [
+      "Static decompiler observations do not establish runtime behavior; the APK is never executed.",
+      "Method signatures use provider display types; exact DEX descriptors and instruction offsets are unavailable. Overload indices are local to this engine and artifact.",
+      "Class inventories use parsed metadata before code generation, including synthetic members that may be omitted from decompiled source. Source positions remain unknown.",
+      "Manifest summary fields are extracted by the upstream engine; decoded XML is retained for verification. APK signatures, split APKs, native libraries and Android runtime capture are not verified by this provider."
+    ],
+    "local_record": "docs/evidence/BleUtils-e.json"
+  },
+  {
+    "evidence_id": "ev_9c7638f390ce069ec69c083d7a2e155ef959da1ddc065e6b1ebcef59544b37b6",
+    "operation": "inspect_android_method",
+    "class": "com.govee.base2kt.utils.BleUtils",
+    "method": "g",
+    "overload_index": 0,
+    "artifact_sha256": "833b42b39fc1c68a807adaa37fb8261ee13f52dee85c142882c6e09e7ec2d452",
+    "authority": "shipped-artifact",
+    "confidence": "derived",
+    "source_status": "complete",
+    "representation": "java",
+    "limitations": [
+      "Static decompiler observations do not establish runtime behavior; the APK is never executed.",
+      "Method signatures use provider display types; exact DEX descriptors and instruction offsets are unavailable. Overload indices are local to this engine and artifact.",
+      "Class inventories use parsed metadata before code generation, including synthetic members that may be omitted from decompiled source. Source positions remain unknown.",
+      "Manifest summary fields are extracted by the upstream engine; decoded XML is retained for verification. APK signatures, split APKs, native libraries and Android runtime capture are not verified by this provider."
+    ],
+    "local_record": "docs/evidence/BleUtils-g.json"
+  },
+  {
+    "evidence_id": "ev_59439f32c6071029a7d8b9b9c5aa510317d7d0cb681404599804ece22ddbabbc",
+    "operation": "inspect_android_class",
+    "class": "com.govee.base2kt.utils.BleUtils",
+    "method": null,
+    "overload_index": null,
+    "artifact_sha256": "833b42b39fc1c68a807adaa37fb8261ee13f52dee85c142882c6e09e7ec2d452",
+    "authority": "shipped-artifact",
+    "confidence": "observed",
+    "source_status": null,
+    "representation": null,
+    "limitations": [
+      "Static decompiler observations do not establish runtime behavior; the APK is never executed.",
+      "Method signatures use provider display types; exact DEX descriptors and instruction offsets are unavailable. Overload indices are local to this engine and artifact.",
+      "Class inventories use parsed metadata before code generation, including synthetic members that may be omitted from decompiled source. Source positions remain unknown.",
+      "Manifest summary fields are extracted by the upstream engine; decoded XML is retained for verification. APK signatures, split APKs, native libraries and Android runtime capture are not verified by this provider."
+    ],
+    "local_record": "docs/evidence/BleUtils.json"
+  },
+  {
+    "evidence_id": "ev_a4b2faac56f4d5815f7d7599b40f7510208f5f62033cfbeea69b91c176348858",
+    "operation": "trace_android_references",
+    "class": "com.govee.base2light.ble.controller.BrightnessController",
+    "method": null,
+    "overload_index": null,
+    "artifact_sha256": "833b42b39fc1c68a807adaa37fb8261ee13f52dee85c142882c6e09e7ec2d452",
+    "authority": "shipped-artifact",
+    "confidence": "observed",
+    "source_status": null,
+    "representation": null,
+    "limitations": [
+      "Static decompiler observations do not establish runtime behavior; the APK is never executed.",
+      "Method signatures use provider display types; exact DEX descriptors and instruction offsets are unavailable. Overload indices are local to this engine and artifact.",
+      "Class inventories use parsed metadata before code generation, including synthetic members that may be omitted from decompiled source. Source positions remain unknown.",
+      "Manifest summary fields are extracted by the upstream engine; decoded XML is retained for verification. APK signatures, split APKs, native libraries and Android runtime capture are not verified by this provider."
+    ],
+    "local_record": "docs/evidence/brightness-incoming.json"
+  },
+  {
+    "evidence_id": "ev_ae6e6143bf24fd65cde9922f343a635e88265ff4801a15cdb7a9e49b3837b165",
+    "operation": "inspect_android_method",
+    "class": "com.govee.base2light.ble.controller.BrightnessController",
+    "method": "getCommandType",
+    "overload_index": 0,
+    "artifact_sha256": "833b42b39fc1c68a807adaa37fb8261ee13f52dee85c142882c6e09e7ec2d452",
+    "authority": "shipped-artifact",
+    "confidence": "derived",
+    "source_status": "complete",
+    "representation": "java",
+    "limitations": [
+      "Static decompiler observations do not establish runtime behavior; the APK is never executed.",
+      "Method signatures use provider display types; exact DEX descriptors and instruction offsets are unavailable. Overload indices are local to this engine and artifact.",
+      "Class inventories use parsed metadata before code generation, including synthetic members that may be omitted from decompiled source. Source positions remain unknown.",
+      "Manifest summary fields are extracted by the upstream engine; decoded XML is retained for verification. APK signatures, split APKs, native libraries and Android runtime capture are not verified by this provider."
+    ],
+    "local_record": "docs/evidence/BrightnessController-getCommandType.json"
+  },
+  {
+    "evidence_id": "ev_c5e79f5ba2cc12182d5ded224ffff7e8b1b85663acf71e35ce6493f72c4190a2",
+    "operation": "inspect_android_method",
+    "class": "com.govee.base2light.ble.controller.BrightnessController",
+    "method": "<init>",
+    "overload_index": 1,
+    "artifact_sha256": "833b42b39fc1c68a807adaa37fb8261ee13f52dee85c142882c6e09e7ec2d452",
+    "authority": "shipped-artifact",
+    "confidence": "derived",
+    "source_status": "complete",
+    "representation": "java",
+    "limitations": [
+      "Static decompiler observations do not establish runtime behavior; the APK is never executed.",
+      "Method signatures use provider display types; exact DEX descriptors and instruction offsets are unavailable. Overload indices are local to this engine and artifact.",
+      "Class inventories use parsed metadata before code generation, including synthetic members that may be omitted from decompiled source. Source positions remain unknown.",
+      "Manifest summary fields are extracted by the upstream engine; decoded XML is retained for verification. APK signatures, split APKs, native libraries and Android runtime capture are not verified by this provider."
+    ],
+    "local_record": "docs/evidence/BrightnessController-init1.json"
+  },
+  {
+    "evidence_id": "ev_4be221f001571c8ae15617849eeba51f3c145c21a0f4307ab50104f01b3e320e",
+    "operation": "inspect_android_method",
+    "class": "com.govee.base2light.ble.controller.BrightnessController",
+    "method": "q",
+    "overload_index": 0,
+    "artifact_sha256": "833b42b39fc1c68a807adaa37fb8261ee13f52dee85c142882c6e09e7ec2d452",
+    "authority": "shipped-artifact",
+    "confidence": "derived",
+    "source_status": "complete",
+    "representation": "java",
+    "limitations": [
+      "Static decompiler observations do not establish runtime behavior; the APK is never executed.",
+      "Method signatures use provider display types; exact DEX descriptors and instruction offsets are unavailable. Overload indices are local to this engine and artifact.",
+      "Class inventories use parsed metadata before code generation, including synthetic members that may be omitted from decompiled source. Source positions remain unknown.",
+      "Manifest summary fields are extracted by the upstream engine; decoded XML is retained for verification. APK signatures, split APKs, native libraries and Android runtime capture are not verified by this provider."
+    ],
+    "local_record": "docs/evidence/BrightnessController-q.json"
+  },
+  {
+    "evidence_id": "ev_0de9fd1faa18bf3b63d6a75591f2d2c1d9a3513caeadb39a7f6a44ab824b48ff",
+    "operation": "inspect_android_class",
+    "class": "com.govee.base2light.ble.controller.BrightnessController",
+    "method": null,
+    "overload_index": null,
+    "artifact_sha256": "833b42b39fc1c68a807adaa37fb8261ee13f52dee85c142882c6e09e7ec2d452",
+    "authority": "shipped-artifact",
+    "confidence": "observed",
+    "source_status": null,
+    "representation": null,
+    "limitations": [
+      "Static decompiler observations do not establish runtime behavior; the APK is never executed.",
+      "Method signatures use provider display types; exact DEX descriptors and instruction offsets are unavailable. Overload indices are local to this engine and artifact.",
+      "Class inventories use parsed metadata before code generation, including synthetic members that may be omitted from decompiled source. Source positions remain unknown.",
+      "Manifest summary fields are extracted by the upstream engine; decoded XML is retained for verification. APK signatures, split APKs, native libraries and Android runtime capture are not verified by this provider."
+    ],
+    "local_record": "docs/evidence/BrightnessController.json"
+  },
+  {
+    "evidence_id": "ev_da9b17c4114fd5ecc0383cf6e585a282c8ce579c08de3995d62d82df62a83f71",
+    "operation": "search_android_classes",
+    "class": null,
+    "method": null,
+    "overload_index": null,
+    "artifact_sha256": "833b42b39fc1c68a807adaa37fb8261ee13f52dee85c142882c6e09e7ec2d452",
+    "authority": "shipped-artifact",
+    "confidence": "observed",
+    "source_status": null,
+    "representation": null,
+    "limitations": [
+      "Static decompiler observations do not establish runtime behavior; the APK is never executed.",
+      "Method signatures use provider display types; exact DEX descriptors and instruction offsets are unavailable. Overload indices are local to this engine and artifact.",
+      "Class inventories use parsed metadata before code generation, including synthetic members that may be omitted from decompiled source. Source positions remain unknown.",
+      "Manifest summary fields are extracted by the upstream engine; decoded XML is retained for verification. APK signatures, split APKs, native libraries and Android runtime capture are not verified by this provider."
+    ],
+    "local_record": "docs/evidence/classes.json"
+  },
+  {
+    "evidence_id": "ev_137c03c21f79cd7bfbde69968b47e6db714556d55314510b682a3413d4609148",
+    "operation": "inspect_android_method",
+    "class": "com.govee.base2light.ble.controller.BleProtocolConstants",
+    "method": "<clinit>",
+    "overload_index": 0,
+    "artifact_sha256": "833b42b39fc1c68a807adaa37fb8261ee13f52dee85c142882c6e09e7ec2d452",
+    "authority": "shipped-artifact",
+    "confidence": "derived",
+    "source_status": "complete",
+    "representation": "java",
+    "limitations": [
+      "Static decompiler observations do not establish runtime behavior; the APK is never executed.",
+      "Method signatures use provider display types; exact DEX descriptors and instruction offsets are unavailable. Overload indices are local to this engine and artifact.",
+      "Class inventories use parsed metadata before code generation, including synthetic members that may be omitted from decompiled source. Source positions remain unknown.",
+      "Manifest summary fields are extracted by the upstream engine; decoded XML is retained for verification. APK signatures, split APKs, native libraries and Android runtime capture are not verified by this provider."
+    ],
+    "local_record": "docs/evidence/com.govee.base2light.ble.controller.BleProtocolConstants.clinit.json"
+  },
+  {
+    "evidence_id": "ev_dcdb3c572cfca12db6549ac5d5798bf91d0902c4e05ce82a69e3a717620c6cac",
+    "operation": "inspect_android_class",
+    "class": "com.govee.base2light.ble.controller.BleProtocolConstants",
+    "method": null,
+    "overload_index": null,
+    "artifact_sha256": "833b42b39fc1c68a807adaa37fb8261ee13f52dee85c142882c6e09e7ec2d452",
+    "authority": "shipped-artifact",
+    "confidence": "observed",
+    "source_status": null,
+    "representation": null,
+    "limitations": [
+      "Static decompiler observations do not establish runtime behavior; the APK is never executed.",
+      "Method signatures use provider display types; exact DEX descriptors and instruction offsets are unavailable. Overload indices are local to this engine and artifact.",
+      "Class inventories use parsed metadata before code generation, including synthetic members that may be omitted from decompiled source. Source positions remain unknown.",
+      "Manifest summary fields are extracted by the upstream engine; decoded XML is retained for verification. APK signatures, split APKs, native libraries and Android runtime capture are not verified by this provider."
+    ],
+    "local_record": "docs/evidence/com.govee.base2light.ble.controller.BleProtocolConstants.json"
+  },
+  {
+    "evidence_id": "ev_038544fb8c8f747dd8730aef5ac5cba31f302e5e1ecd4d8b8c995b772c9aeb52",
+    "operation": "inspect_android_method",
+    "class": "com.govee.base2light.wlanControl.WlanController",
+    "method": "f",
+    "overload_index": 0,
+    "artifact_sha256": "833b42b39fc1c68a807adaa37fb8261ee13f52dee85c142882c6e09e7ec2d452",
+    "authority": "shipped-artifact",
+    "confidence": "derived",
+    "source_status": "complete",
+    "representation": "java",
+    "limitations": [
+      "Static decompiler observations do not establish runtime behavior; the APK is never executed.",
+      "Method signatures use provider display types; exact DEX descriptors and instruction offsets are unavailable. Overload indices are local to this engine and artifact.",
+      "Class inventories use parsed metadata before code generation, including synthetic members that may be omitted from decompiled source. Source positions remain unknown.",
+      "Manifest summary fields are extracted by the upstream engine; decoded XML is retained for verification. APK signatures, split APKs, native libraries and Android runtime capture are not verified by this provider."
+    ],
+    "local_record": "docs/evidence/com.govee.base2light.wlanControl.WlanController.f.json"
+  },
+  {
+    "evidence_id": "ev_3639a5d050c75ddc2d9b82e50262e8afcad1ca8bd2b403e6069df7c6718b1fff",
+    "operation": "inspect_android_method",
+    "class": "com.govee.base2light.wlanControl.WlanController",
+    "method": "getCommandType",
+    "overload_index": 0,
+    "artifact_sha256": "833b42b39fc1c68a807adaa37fb8261ee13f52dee85c142882c6e09e7ec2d452",
+    "authority": "shipped-artifact",
+    "confidence": "derived",
+    "source_status": "complete",
+    "representation": "java",
+    "limitations": [
+      "Static decompiler observations do not establish runtime behavior; the APK is never executed.",
+      "Method signatures use provider display types; exact DEX descriptors and instruction offsets are unavailable. Overload indices are local to this engine and artifact.",
+      "Class inventories use parsed metadata before code generation, including synthetic members that may be omitted from decompiled source. Source positions remain unknown.",
+      "Manifest summary fields are extracted by the upstream engine; decoded XML is retained for verification. APK signatures, split APKs, native libraries and Android runtime capture are not verified by this provider."
+    ],
+    "local_record": "docs/evidence/com.govee.base2light.wlanControl.WlanController.getCommandType.json"
+  },
+  {
+    "evidence_id": "ev_b0a0f7870a3f5c17d90f59f3de0f5ccc65171dd69a40effc4cbcef74f73426b4",
+    "operation": "inspect_android_class",
+    "class": "com.govee.base2light.wlanControl.WlanController",
+    "method": null,
+    "overload_index": null,
+    "artifact_sha256": "833b42b39fc1c68a807adaa37fb8261ee13f52dee85c142882c6e09e7ec2d452",
+    "authority": "shipped-artifact",
+    "confidence": "observed",
+    "source_status": null,
+    "representation": null,
+    "limitations": [
+      "Static decompiler observations do not establish runtime behavior; the APK is never executed.",
+      "Method signatures use provider display types; exact DEX descriptors and instruction offsets are unavailable. Overload indices are local to this engine and artifact.",
+      "Class inventories use parsed metadata before code generation, including synthetic members that may be omitted from decompiled source. Source positions remain unknown.",
+      "Manifest summary fields are extracted by the upstream engine; decoded XML is retained for verification. APK signatures, split APKs, native libraries and Android runtime capture are not verified by this provider."
+    ],
+    "local_record": "docs/evidence/com.govee.base2light.wlanControl.WlanController.json"
+  },
+  {
+    "evidence_id": "ev_41f960511d64dd33f9728dd023545231fa2303fa771a9bd4b85a33647ce15621",
+    "operation": "inspect_android_method",
+    "class": "com.govee.base2light.wlanControl.WlanController",
+    "method": "q",
+    "overload_index": 0,
+    "artifact_sha256": "833b42b39fc1c68a807adaa37fb8261ee13f52dee85c142882c6e09e7ec2d452",
+    "authority": "shipped-artifact",
+    "confidence": "derived",
+    "source_status": "complete",
+    "representation": "java",
+    "limitations": [
+      "Static decompiler observations do not establish runtime behavior; the APK is never executed.",
+      "Method signatures use provider display types; exact DEX descriptors and instruction offsets are unavailable. Overload indices are local to this engine and artifact.",
+      "Class inventories use parsed metadata before code generation, including synthetic members that may be omitted from decompiled source. Source positions remain unknown.",
+      "Manifest summary fields are extracted by the upstream engine; decoded XML is retained for verification. APK signatures, split APKs, native libraries and Android runtime capture are not verified by this provider."
+    ],
+    "local_record": "docs/evidence/com.govee.base2light.wlanControl.WlanController.q.json"
+  },
+  {
+    "evidence_id": "ev_9d2b1d2d7dee0af6ac8cbed88774ec7708a32cad5aca62a8a52e60869ac12f21",
+    "operation": "inspect_android_method",
+    "class": "com.govee.base2light.wlanControl.WlanControlOperator",
+    "method": "g",
+    "overload_index": 0,
+    "artifact_sha256": "833b42b39fc1c68a807adaa37fb8261ee13f52dee85c142882c6e09e7ec2d452",
+    "authority": "shipped-artifact",
+    "confidence": "derived",
+    "source_status": "complete",
+    "representation": "java",
+    "limitations": [
+      "Static decompiler observations do not establish runtime behavior; the APK is never executed.",
+      "Method signatures use provider display types; exact DEX descriptors and instruction offsets are unavailable. Overload indices are local to this engine and artifact.",
+      "Class inventories use parsed metadata before code generation, including synthetic members that may be omitted from decompiled source. Source positions remain unknown.",
+      "Manifest summary fields are extracted by the upstream engine; decoded XML is retained for verification. APK signatures, split APKs, native libraries and Android runtime capture are not verified by this provider."
+    ],
+    "local_record": "docs/evidence/com.govee.base2light.wlanControl.WlanControlOperator.g.json"
+  },
+  {
+    "evidence_id": "ev_a50de5bcfbf00223c186ebd7c49ee2ae1a99bac86c22f4740a8759e851c812fc",
+    "operation": "inspect_android_class",
+    "class": "com.govee.base2light.wlanControl.WlanControlOperator",
+    "method": null,
+    "overload_index": null,
+    "artifact_sha256": "833b42b39fc1c68a807adaa37fb8261ee13f52dee85c142882c6e09e7ec2d452",
+    "authority": "shipped-artifact",
+    "confidence": "observed",
+    "source_status": null,
+    "representation": null,
+    "limitations": [
+      "Static decompiler observations do not establish runtime behavior; the APK is never executed.",
+      "Method signatures use provider display types; exact DEX descriptors and instruction offsets are unavailable. Overload indices are local to this engine and artifact.",
+      "Class inventories use parsed metadata before code generation, including synthetic members that may be omitted from decompiled source. Source positions remain unknown.",
+      "Manifest summary fields are extracted by the upstream engine; decoded XML is retained for verification. APK signatures, split APKs, native libraries and Android runtime capture are not verified by this provider."
+    ],
+    "local_record": "docs/evidence/com.govee.base2light.wlanControl.WlanControlOperator.json"
+  },
+  {
+    "evidence_id": "ev_135b28c579d23a60e99dedcc9f6a64c674d9bf6aeb26f6f0f80340f25c832af1",
+    "operation": "inspect_android_method",
+    "class": "com.govee.base2light.wlanControl.WlanControlOperator",
+    "method": "p",
+    "overload_index": 0,
+    "artifact_sha256": "833b42b39fc1c68a807adaa37fb8261ee13f52dee85c142882c6e09e7ec2d452",
+    "authority": "shipped-artifact",
+    "confidence": "derived",
+    "source_status": "complete",
+    "representation": "java",
+    "limitations": [
+      "Static decompiler observations do not establish runtime behavior; the APK is never executed.",
+      "Method signatures use provider display types; exact DEX descriptors and instruction offsets are unavailable. Overload indices are local to this engine and artifact.",
+      "Class inventories use parsed metadata before code generation, including synthetic members that may be omitted from decompiled source. Source positions remain unknown.",
+      "Manifest summary fields are extracted by the upstream engine; decoded XML is retained for verification. APK signatures, split APKs, native libraries and Android runtime capture are not verified by this provider."
+    ],
+    "local_record": "docs/evidence/com.govee.base2light.wlanControl.WlanControlOperator.p.json"
+  },
+  {
+    "evidence_id": "ev_c7f34f6d83e8812e8a5faf80ccfdd60e273b317c8cd9e821d8d1de271d57c9c4",
+    "operation": "inspect_android_class",
+    "class": "com.govee.ble.scan.ScanManager",
+    "method": null,
+    "overload_index": null,
+    "artifact_sha256": "833b42b39fc1c68a807adaa37fb8261ee13f52dee85c142882c6e09e7ec2d452",
+    "authority": "shipped-artifact",
+    "confidence": "observed",
+    "source_status": null,
+    "representation": null,
+    "limitations": [
+      "Static decompiler observations do not establish runtime behavior; the APK is never executed.",
+      "Method signatures use provider display types; exact DEX descriptors and instruction offsets are unavailable. Overload indices are local to this engine and artifact.",
+      "Class inventories use parsed metadata before code generation, including synthetic members that may be omitted from decompiled source. Source positions remain unknown.",
+      "Manifest summary fields are extracted by the upstream engine; decoded XML is retained for verification. APK signatures, split APKs, native libraries and Android runtime capture are not verified by this provider."
+    ],
+    "local_record": "docs/evidence/com.govee.ble.scan.ScanManager.json"
+  },
+  {
+    "evidence_id": "ev_c87fa261276cb822165482f9d229ddd0de593b8f33727b2e8c54ce22cd619139",
+    "operation": "inspect_android_method",
+    "class": "com.govee.ble.scan.ScanManager",
+    "method": "k",
+    "overload_index": 0,
+    "artifact_sha256": "833b42b39fc1c68a807adaa37fb8261ee13f52dee85c142882c6e09e7ec2d452",
+    "authority": "shipped-artifact",
+    "confidence": "derived",
+    "source_status": "complete",
+    "representation": "java",
+    "limitations": [
+      "Static decompiler observations do not establish runtime behavior; the APK is never executed.",
+      "Method signatures use provider display types; exact DEX descriptors and instruction offsets are unavailable. Overload indices are local to this engine and artifact.",
+      "Class inventories use parsed metadata before code generation, including synthetic members that may be omitted from decompiled source. Source positions remain unknown.",
+      "Manifest summary fields are extracted by the upstream engine; decoded XML is retained for verification. APK signatures, split APKs, native libraries and Android runtime capture are not verified by this provider."
+    ],
+    "local_record": "docs/evidence/com.govee.ble.scan.ScanManager.k.json"
+  },
+  {
+    "evidence_id": "ev_d91c876ef12a7fff09a4a5c2020e24060c43b712f4403d9bfcc20c13e8474238",
+    "operation": "inspect_android_method",
+    "class": "com.govee.ble.scan.ScanManager",
+    "method": "m",
+    "overload_index": 0,
+    "artifact_sha256": "833b42b39fc1c68a807adaa37fb8261ee13f52dee85c142882c6e09e7ec2d452",
+    "authority": "shipped-artifact",
+    "confidence": "derived",
+    "source_status": "complete",
+    "representation": "java",
+    "limitations": [
+      "Static decompiler observations do not establish runtime behavior; the APK is never executed.",
+      "Method signatures use provider display types; exact DEX descriptors and instruction offsets are unavailable. Overload indices are local to this engine and artifact.",
+      "Class inventories use parsed metadata before code generation, including synthetic members that may be omitted from decompiled source. Source positions remain unknown.",
+      "Manifest summary fields are extracted by the upstream engine; decoded XML is retained for verification. APK signatures, split APKs, native libraries and Android runtime capture are not verified by this provider."
+    ],
+    "local_record": "docs/evidence/com.govee.ble.scan.ScanManager.m.json"
+  },
+  {
+    "evidence_id": "ev_70f2e152cdb34675ceeb9abe49e7a27712dac83302240f4f512be8ae7bf75e6c",
+    "operation": "inspect_android_class",
+    "class": "com.govee.bulblightv2.ble.BleProtocol",
+    "method": null,
+    "overload_index": null,
+    "artifact_sha256": "833b42b39fc1c68a807adaa37fb8261ee13f52dee85c142882c6e09e7ec2d452",
+    "authority": "shipped-artifact",
+    "confidence": "observed",
+    "source_status": null,
+    "representation": null,
+    "limitations": [
+      "Static decompiler observations do not establish runtime behavior; the APK is never executed.",
+      "Method signatures use provider display types; exact DEX descriptors and instruction offsets are unavailable. Overload indices are local to this engine and artifact.",
+      "Class inventories use parsed metadata before code generation, including synthetic members that may be omitted from decompiled source. Source positions remain unknown.",
+      "Manifest summary fields are extracted by the upstream engine; decoded XML is retained for verification. APK signatures, split APKs, native libraries and Android runtime capture are not verified by this provider."
+    ],
+    "local_record": "docs/evidence/com.govee.bulblightv2.ble.BleProtocol.json"
+  },
+  {
+    "evidence_id": "ev_f0516a7f1028d0a3e18ae3c0b791103654cc6fcb766852fecfa70b7e96228515",
+    "operation": "inspect_android_method",
+    "class": "com.govee.ctlchannel.iot.IotClientProxy",
+    "method": "F",
+    "overload_index": 0,
+    "artifact_sha256": "833b42b39fc1c68a807adaa37fb8261ee13f52dee85c142882c6e09e7ec2d452",
+    "authority": "shipped-artifact",
+    "confidence": "derived",
+    "source_status": "complete",
+    "representation": "java",
+    "limitations": [
+      "Static decompiler observations do not establish runtime behavior; the APK is never executed.",
+      "Method signatures use provider display types; exact DEX descriptors and instruction offsets are unavailable. Overload indices are local to this engine and artifact.",
+      "Class inventories use parsed metadata before code generation, including synthetic members that may be omitted from decompiled source. Source positions remain unknown.",
+      "Manifest summary fields are extracted by the upstream engine; decoded XML is retained for verification. APK signatures, split APKs, native libraries and Android runtime capture are not verified by this provider."
+    ],
+    "local_record": "docs/evidence/com.govee.ctlchannel.iot.IotClientProxy.F.json"
+  },
+  {
+    "evidence_id": "ev_663de416770aa020495de92991bde0cd67e375d5dde5374651b445af479ba99e",
+    "operation": "inspect_android_method",
+    "class": "com.govee.ctlchannel.iot.IotClientProxy",
+    "method": "H",
+    "overload_index": 0,
+    "artifact_sha256": "833b42b39fc1c68a807adaa37fb8261ee13f52dee85c142882c6e09e7ec2d452",
+    "authority": "shipped-artifact",
+    "confidence": "derived",
+    "source_status": "complete",
+    "representation": "java",
+    "limitations": [
+      "Static decompiler observations do not establish runtime behavior; the APK is never executed.",
+      "Method signatures use provider display types; exact DEX descriptors and instruction offsets are unavailable. Overload indices are local to this engine and artifact.",
+      "Class inventories use parsed metadata before code generation, including synthetic members that may be omitted from decompiled source. Source positions remain unknown.",
+      "Manifest summary fields are extracted by the upstream engine; decoded XML is retained for verification. APK signatures, split APKs, native libraries and Android runtime capture are not verified by this provider."
+    ],
+    "local_record": "docs/evidence/com.govee.ctlchannel.iot.IotClientProxy.H.json"
+  },
+  {
+    "evidence_id": "ev_8cdd6bc82a5e9cfc8a2735ae44b67f2ba7c2ae27f938a0cf45a1d7bc8e056d85",
+    "operation": "inspect_android_method",
+    "class": "com.govee.ctlchannel.iot.IotClientProxy",
+    "method": "I",
+    "overload_index": 0,
+    "artifact_sha256": "833b42b39fc1c68a807adaa37fb8261ee13f52dee85c142882c6e09e7ec2d452",
+    "authority": "shipped-artifact",
+    "confidence": "derived",
+    "source_status": "complete",
+    "representation": "java",
+    "limitations": [
+      "Static decompiler observations do not establish runtime behavior; the APK is never executed.",
+      "Method signatures use provider display types; exact DEX descriptors and instruction offsets are unavailable. Overload indices are local to this engine and artifact.",
+      "Class inventories use parsed metadata before code generation, including synthetic members that may be omitted from decompiled source. Source positions remain unknown.",
+      "Manifest summary fields are extracted by the upstream engine; decoded XML is retained for verification. APK signatures, split APKs, native libraries and Android runtime capture are not verified by this provider."
+    ],
+    "local_record": "docs/evidence/com.govee.ctlchannel.iot.IotClientProxy.I.json"
+  },
+  {
+    "evidence_id": "ev_0a6a3d0d97007ef747d073e8df58beb6f0694aa25b3156fbdc713661ac658ec6",
+    "operation": "inspect_android_class",
+    "class": "com.govee.ctlchannel.iot.IotClientProxy",
+    "method": null,
+    "overload_index": null,
+    "artifact_sha256": "833b42b39fc1c68a807adaa37fb8261ee13f52dee85c142882c6e09e7ec2d452",
+    "authority": "shipped-artifact",
+    "confidence": "observed",
+    "source_status": null,
+    "representation": null,
+    "limitations": [
+      "Static decompiler observations do not establish runtime behavior; the APK is never executed.",
+      "Method signatures use provider display types; exact DEX descriptors and instruction offsets are unavailable. Overload indices are local to this engine and artifact.",
+      "Class inventories use parsed metadata before code generation, including synthetic members that may be omitted from decompiled source. Source positions remain unknown.",
+      "Manifest summary fields are extracted by the upstream engine; decoded XML is retained for verification. APK signatures, split APKs, native libraries and Android runtime capture are not verified by this provider."
+    ],
+    "local_record": "docs/evidence/com.govee.ctlchannel.iot.IotClientProxy.json"
+  },
+  {
+    "evidence_id": "ev_4ef070cfb1cb33a4f0af68cc8630694fd12a4921a80bff4dccb3ab7edcd15af3",
+    "operation": "inspect_android_method",
+    "class": "com.govee.ctlchannel.iot.IotClientProxy",
+    "method": "M",
+    "overload_index": 0,
+    "artifact_sha256": "833b42b39fc1c68a807adaa37fb8261ee13f52dee85c142882c6e09e7ec2d452",
+    "authority": "shipped-artifact",
+    "confidence": "derived",
+    "source_status": "complete",
+    "representation": "java",
+    "limitations": [
+      "Static decompiler observations do not establish runtime behavior; the APK is never executed.",
+      "Method signatures use provider display types; exact DEX descriptors and instruction offsets are unavailable. Overload indices are local to this engine and artifact.",
+      "Class inventories use parsed metadata before code generation, including synthetic members that may be omitted from decompiled source. Source positions remain unknown.",
+      "Manifest summary fields are extracted by the upstream engine; decoded XML is retained for verification. APK signatures, split APKs, native libraries and Android runtime capture are not verified by this provider."
+    ],
+    "local_record": "docs/evidence/com.govee.ctlchannel.iot.IotClientProxy.M.json"
+  },
+  {
+    "evidence_id": "ev_7ba96af1744890f83462ec4ace083bfdb4f68fa4ad50178c179ee1816c5ed108",
+    "operation": "inspect_android_method",
+    "class": "com.govee.ctlchannel.iot.IotClientProxy",
+    "method": "sendMsg",
+    "overload_index": 0,
+    "artifact_sha256": "833b42b39fc1c68a807adaa37fb8261ee13f52dee85c142882c6e09e7ec2d452",
+    "authority": "shipped-artifact",
+    "confidence": "derived",
+    "source_status": "complete",
+    "representation": "java",
+    "limitations": [
+      "Static decompiler observations do not establish runtime behavior; the APK is never executed.",
+      "Method signatures use provider display types; exact DEX descriptors and instruction offsets are unavailable. Overload indices are local to this engine and artifact.",
+      "Class inventories use parsed metadata before code generation, including synthetic members that may be omitted from decompiled source. Source positions remain unknown.",
+      "Manifest summary fields are extracted by the upstream engine; decoded XML is retained for verification. APK signatures, split APKs, native libraries and Android runtime capture are not verified by this provider."
+    ],
+    "local_record": "docs/evidence/com.govee.ctlchannel.iot.IotClientProxy.sendMsg.json"
+  },
+  {
+    "evidence_id": "ev_20763ff4d031d2ba943c874181ea6e455bb78fd33fd0128569648bcaf00b1ec6",
+    "operation": "inspect_android_method",
+    "class": "com.govee.ctlchannel.iot.IotClientProxy",
+    "method": "sendMsgBytes",
+    "overload_index": 0,
+    "artifact_sha256": "833b42b39fc1c68a807adaa37fb8261ee13f52dee85c142882c6e09e7ec2d452",
+    "authority": "shipped-artifact",
+    "confidence": "derived",
+    "source_status": "complete",
+    "representation": "java",
+    "limitations": [
+      "Static decompiler observations do not establish runtime behavior; the APK is never executed.",
+      "Method signatures use provider display types; exact DEX descriptors and instruction offsets are unavailable. Overload indices are local to this engine and artifact.",
+      "Class inventories use parsed metadata before code generation, including synthetic members that may be omitted from decompiled source. Source positions remain unknown.",
+      "Manifest summary fields are extracted by the upstream engine; decoded XML is retained for verification. APK signatures, split APKs, native libraries and Android runtime capture are not verified by this provider."
+    ],
+    "local_record": "docs/evidence/com.govee.ctlchannel.iot.IotClientProxy.sendMsgBytes.json"
+  },
+  {
+    "evidence_id": "ev_30b3145372064b2aea71f15fc4bbc85f54e4d898e3d99baeb4c8fd617fdcf1d8",
+    "operation": "inspect_android_package",
+    "class": null,
+    "method": null,
+    "overload_index": null,
+    "artifact_sha256": "833b42b39fc1c68a807adaa37fb8261ee13f52dee85c142882c6e09e7ec2d452",
+    "authority": "shipped-artifact",
+    "confidence": "observed",
+    "source_status": null,
+    "representation": null,
+    "limitations": [
+      "Static decompiler observations do not establish runtime behavior; the APK is never executed.",
+      "Method signatures use provider display types; exact DEX descriptors and instruction offsets are unavailable. Overload indices are local to this engine and artifact.",
+      "Class inventories use parsed metadata before code generation, including synthetic members that may be omitted from decompiled source. Source positions remain unknown.",
+      "Manifest summary fields are extracted by the upstream engine; decoded XML is retained for verification. APK signatures, split APKs, native libraries and Android runtime capture are not verified by this provider."
+    ],
+    "local_record": "docs/evidence/package.json"
+  },
+  {
+    "evidence_id": "ev_e923087a6af3001dede99875bae1249d89dd545f5504d2e7f9e3bc1be8b86311",
+    "operation": "inspect_android_method",
+    "class": "com.govee.base2light.ble.controller.SwitchController",
+    "method": "getCommandType",
+    "overload_index": 0,
+    "artifact_sha256": "833b42b39fc1c68a807adaa37fb8261ee13f52dee85c142882c6e09e7ec2d452",
+    "authority": "shipped-artifact",
+    "confidence": "derived",
+    "source_status": "complete",
+    "representation": "java",
+    "limitations": [
+      "Static decompiler observations do not establish runtime behavior; the APK is never executed.",
+      "Method signatures use provider display types; exact DEX descriptors and instruction offsets are unavailable. Overload indices are local to this engine and artifact.",
+      "Class inventories use parsed metadata before code generation, including synthetic members that may be omitted from decompiled source. Source positions remain unknown.",
+      "Manifest summary fields are extracted by the upstream engine; decoded XML is retained for verification. APK signatures, split APKs, native libraries and Android runtime capture are not verified by this provider."
+    ],
+    "local_record": "docs/evidence/SwitchController-getCommandType.json"
+  },
+  {
+    "evidence_id": "ev_6c1a6173817c044d4369ff5d5e9b03f86bb7b1a7fe8e65444bf5e005958f1743",
+    "operation": "inspect_android_method",
+    "class": "com.govee.base2light.ble.controller.SwitchController",
+    "method": "q",
+    "overload_index": 0,
+    "artifact_sha256": "833b42b39fc1c68a807adaa37fb8261ee13f52dee85c142882c6e09e7ec2d452",
+    "authority": "shipped-artifact",
+    "confidence": "derived",
+    "source_status": "complete",
+    "representation": "java",
+    "limitations": [
+      "Static decompiler observations do not establish runtime behavior; the APK is never executed.",
+      "Method signatures use provider display types; exact DEX descriptors and instruction offsets are unavailable. Overload indices are local to this engine and artifact.",
+      "Class inventories use parsed metadata before code generation, including synthetic members that may be omitted from decompiled source. Source positions remain unknown.",
+      "Manifest summary fields are extracted by the upstream engine; decoded XML is retained for verification. APK signatures, split APKs, native libraries and Android runtime capture are not verified by this provider."
+    ],
+    "local_record": "docs/evidence/SwitchController-q.json"
+  },
+  {
+    "evidence_id": "ev_5d7ea69175eb34ea369a4405c6c684922dcc6faaf6038e9ef7dc126483db40cd",
+    "operation": "inspect_android_class",
+    "class": "com.govee.base2light.ble.controller.SwitchController",
+    "method": null,
+    "overload_index": null,
+    "artifact_sha256": "833b42b39fc1c68a807adaa37fb8261ee13f52dee85c142882c6e09e7ec2d452",
+    "authority": "shipped-artifact",
+    "confidence": "observed",
+    "source_status": null,
+    "representation": null,
+    "limitations": [
+      "Static decompiler observations do not establish runtime behavior; the APK is never executed.",
+      "Method signatures use provider display types; exact DEX descriptors and instruction offsets are unavailable. Overload indices are local to this engine and artifact.",
+      "Class inventories use parsed metadata before code generation, including synthetic members that may be omitted from decompiled source. Source positions remain unknown.",
+      "Manifest summary fields are extracted by the upstream engine; decoded XML is retained for verification. APK signatures, split APKs, native libraries and Android runtime capture are not verified by this provider."
+    ],
+    "local_record": "docs/evidence/SwitchController.json"
+  },
+  {
+    "evidence_id": "ev_0f5f5c5621d8376f00449391daa17be33a9aab6d4f5a50f107628d15596f561a",
+    "operation": "inspect_android_class",
+    "class": "com.govee.base2light.Uuid",
+    "method": null,
+    "overload_index": null,
+    "artifact_sha256": "833b42b39fc1c68a807adaa37fb8261ee13f52dee85c142882c6e09e7ec2d452",
+    "authority": "shipped-artifact",
+    "confidence": "observed",
+    "source_status": null,
+    "representation": null,
+    "limitations": [
+      "Static decompiler observations do not establish runtime behavior; the APK is never executed.",
+      "Method signatures use provider display types; exact DEX descriptors and instruction offsets are unavailable. Overload indices are local to this engine and artifact.",
+      "Class inventories use parsed metadata before code generation, including synthetic members that may be omitted from decompiled source. Source positions remain unknown.",
+      "Manifest summary fields are extracted by the upstream engine; decoded XML is retained for verification. APK signatures, split APKs, native libraries and Android runtime capture are not verified by this provider."
+    ],
+    "local_record": "docs/evidence/Uuid.json"
+  }
+]

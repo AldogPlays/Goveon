@@ -1,0 +1,16 @@
+.gradle/
+.kotlin/
+**/build/
+local.properties
+.tools/
+.repo/
+.trailrelay/
+reference/
+references/
+.idea/
+*.iml
+*.jks
+*.keystore
+artifacts/*.apk
+docs/evidence/*.json
+!gradle/wrapper/gradle-wrapper.jar
