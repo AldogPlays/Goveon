@@ -1,5 +1,7 @@
 package com.goveon.app.lighting
 
+import kotlin.math.ceil
+
 /** Independently encoded from REA observations of the supplied Govee 6.2.01 APK.
  * Protocol/model evidence and remaining hardware checks: docs/ble-protocol.md. */
 object GoveeBleProtocol {
@@ -9,7 +11,9 @@ object GoveeBleProtocol {
     private val core = setOf("powerSwitch", "brightness")
     // Packaged categories.json maps H6005 to the registered bulb-v2 product type 20.
     val profiles = listOf(
-        Profile("bulb-v2", SERVICE, WRITE, setOf("H6005"), core + "colorRgb"),
+        Profile("bulb-v2", SERVICE, WRITE, setOf("H6005"), core + setOf("colorRgb", "colorTemperatureK")),
+        // APK categories product type 64, registered to the bulb-v3 controller family.
+        Profile("bulb-v3", SERVICE, WRITE, setOf("H6004", "H6006", "H6008", "H6009", "H600A", "H6010", "H600D"), core + setOf("colorRgb", "colorTemperatureK")),
         Profile("color-0d", SERVICE, WRITE, emptySet(), core + "colorRgb"),
         Profile("common-light", SERVICE, WRITE, emptySet(), core),
         Profile("unclassified", SERVICE, WRITE, emptySet(), emptySet()),
@@ -17,6 +21,17 @@ object GoveeBleProtocol {
     fun profileFor(model: String): Profile = profiles.firstOrNull { model.uppercase() in it.models } ?: profiles.last()
     fun isKnownProfile(id: String?) = profiles.any { it.id == id }
     fun supports(id: String?, instance: String) = profiles.firstOrNull { it.id == id }?.controls?.contains(instance) == true
+    fun temperatureValues(profile: String?): List<Int> = when (profile) {
+        "bulb-v2" -> BulbWhiteTemperatureTable.values
+        "bulb-v3" -> BulbWhiteTemperatureTable.values.filter { it in 2700..6500 }
+        else -> emptyList()
+    }
+    fun temperatureRange(profile: String?): IntRange? = temperatureValues(profile).takeIf { it.isNotEmpty() }?.let { it.first()..it.last() }
+    private fun encodedBrightness(profile: String, percent: Int): Int = if (profile == "bulb-v2")
+        (20 + (percent - 1) * (237 / 100.0f)).toInt() else percent
+    private fun decodedBrightness(profile: String, raw: Int): Int? = if (profile == "bulb-v2") {
+        if (raw in 20..254) (ceil(((raw - 20) / (237 / 100.0f)).toDouble()).toInt() + 1).coerceIn(1, 100) else null
+    } else raw.takeIf { it in 0..100 }
     fun modelFromName(name: String): String? = Regex("(?:^|[^A-Z0-9])(H[0-9A-F]{4})(?=$|[^A-Z0-9])", RegexOption.IGNORE_CASE)
         .find(name)?.groupValues?.get(1)?.uppercase()
     fun isCandidate(name: String, services: List<String>): Boolean = name.contains("Govee", true) || name.contains("iHoment", true) || services.any { it.equals(SERVICE, true) }
@@ -42,12 +57,19 @@ object GoveeBleProtocol {
             is LightCommand.Power -> frame(0x33, 0x01, byteArrayOf(if (command.on) 1 else 0))
             is LightCommand.Brightness -> {
                 require(command.percent in 1..100) { "Bluetooth brightness must be 1–100%." }
-                frame(0x33, 0x04, byteArrayOf(command.percent.toByte()))
+                frame(0x33, 0x04, byteArrayOf(encodedBrightness(profile, command.percent).toByte()))
             }
             is LightCommand.Color -> {
                 require(command.rgb in 0..0xFFFFFF) { "Color must contain a 24-bit RGB value." }
                 val r = (command.rgb ushr 16).toByte(); val g = (command.rgb ushr 8).toByte(); val b = command.rgb.toByte()
                 frame(0x33, 0x05, byteArrayOf(0x0D, r, g, b, 0, 0, 0, 0, 0))
+            }
+            is LightCommand.Temperature -> {
+                require(command.kelvin in temperatureValues(profile)) { "Choose a temperature from this light's supported white range." }
+                val white = requireNotNull(BulbWhiteTemperatureTable.rgb(command.kelvin))
+                frame(0x33, 0x05, byteArrayOf(0x0D, 0xFF.toByte(), 0xFF.toByte(), 0xFF.toByte(),
+                    (command.kelvin ushr 8).toByte(), command.kelvin.toByte(),
+                    (white ushr 16).toByte(), (white ushr 8).toByte(), white.toByte()))
             }
             else -> error("This Bluetooth control has not been implemented for this profile.")
         }
@@ -66,7 +88,7 @@ object GoveeBleProtocol {
         val value = packet[2].toInt() and 255
         return when (packet[1].toInt() and 255) {
             0x01 -> LightState(power = value != 0, online = true, lastUpdated = now)
-            0x04 -> if (value in 0..100) LightState(brightness = value, online = true, lastUpdated = now) else null
+            0x04 -> decodedBrightness(profile, value)?.let { LightState(brightness = it, online = true, lastUpdated = now) }
             0x05 -> if (supports(profile, "colorRgb") && matchesColorProfile(packet)) LightState(
                 rgb = ((packet[3].toInt() and 255) shl 16) or ((packet[4].toInt() and 255) shl 8) or (packet[5].toInt() and 255),
                 temperatureKelvin = ((packet[6].toInt() and 255) shl 8) or (packet[7].toInt() and 255),

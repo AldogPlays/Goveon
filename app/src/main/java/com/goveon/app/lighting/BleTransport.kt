@@ -16,7 +16,6 @@ import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 
 internal data class BleAdvertisement(val address: String, val name: String, val model: String?, val rssi: Int)
-internal class BleFailure(message: String) : Exception(message)
 
 /** Foreground BLE central. Each connection serializes GATT operations and owns its callbacks.
  * Never enables the radio, bonds a device, or sends Wi-Fi/account provisioning packets. */
@@ -30,6 +29,8 @@ internal class BleTransport(
 ) {
     private val adapter get() = context.getSystemService(BluetoothManager::class.java)?.adapter
     private val connections = ConcurrentHashMap<String, Connection>()
+    private val failures = ConcurrentHashMap<String, BleFailureReason>()
+    fun failureReason(address: String): BleFailureReason? = failures[address]
     private val scanMutex = Mutex()
     private val lifecycle = Any()
     @Volatile private var foreground = true
@@ -43,14 +44,14 @@ internal class BleTransport(
             else listOf(Manifest.permission.BLUETOOTH_CONNECT)
         } else if (scanning) listOf(Manifest.permission.ACCESS_FINE_LOCATION) else emptyList()
         if (permissions.any { ContextCompat.checkSelfPermission(context, it) != PackageManager.PERMISSION_GRANTED })
-            throw BleFailure("Allow ${if (Build.VERSION.SDK_INT >= 31) "Nearby devices" else "Location"} permission to use Bluetooth.")
+            throw BleFailure("Allow ${if (Build.VERSION.SDK_INT >= 31) "Nearby devices" else "Location"} permission to use Bluetooth.", BleFailureReason.PERMISSION)
         val location = context.getSystemService(LocationManager::class.java)
         val locationEnabled = if (Build.VERSION.SDK_INT >= 28) location?.isLocationEnabled == true
             else location?.isProviderEnabled(LocationManager.GPS_PROVIDER) == true || location?.isProviderEnabled(LocationManager.NETWORK_PROVIDER) == true
         if (scanning && Build.VERSION.SDK_INT < 31 && !locationEnabled)
             throw BleFailure("Android requires Location services to be enabled for Bluetooth scanning on this version. Goveon does not collect your location.")
-        if (adapter == null) throw BleFailure("This Android device does not support Bluetooth.")
-        if (adapter?.isEnabled != true) throw BleFailure("Turn on Bluetooth to find nearby lights.")
+        if (adapter == null) throw BleFailure("This Android device does not support Bluetooth.", BleFailureReason.UNSUPPORTED)
+        if (adapter?.isEnabled != true) throw BleFailure("Turn on Bluetooth to find nearby lights.", BleFailureReason.RADIO_UNAVAILABLE)
         if (!foreground) throw BleFailure("Bluetooth is paused while Goveon is in the background.")
     }
 
@@ -119,6 +120,7 @@ internal class BleTransport(
         synchronized(lifecycle) {
             if (!foreground) throw BleFailure("Bluetooth is paused while Goveon is in the background.")
             connections.put(address, connection)?.close()
+            failures.remove(address)
             onConnection(address, BleConnection.CONNECTING, null)
         }
         try {
@@ -142,6 +144,7 @@ internal class BleTransport(
             synchronized(lifecycle) {
                 if (!foreground || connection.closed || connections[address] !== connection) throw BleFailure("The light disconnected during setup.")
                 connection.ready = true
+                failures.remove(address)
                 onConnection(address, BleConnection.CONNECTED, connection.profile!!.id)
                 connection.startRefresh()
             }
@@ -150,11 +153,15 @@ internal class BleTransport(
             disconnectOwned(address, connection)
             if (cancelled is TimeoutCancellationException) throw BleFailure("Bluetooth connection timed out. Move closer, power-cycle the light, and close other apps connected to it.")
             throw cancelled
-        } catch (failure: Exception) { disconnectOwned(address, connection); throw failure }
+        } catch (failure: Exception) {
+            val classified = if (failure is SecurityException) BleFailure("Bluetooth permission was revoked. Allow Nearby devices and retry.", BleFailureReason.PERMISSION) else failure
+            disconnectOwned(address, connection, classified as? BleFailure)
+            throw classified
+        }
     }
 
     suspend fun send(address: String, command: LightCommand) {
-        checkPermissions(false)
+        checkConnectionPermission(address)
         val connection = connections[address]?.takeIf { it.ready && !it.closed }
             ?: throw BleFailure("Connect to the light over Bluetooth first.")
         val frames = GoveeBleProtocol.command(connection.profile!!.id, command)
@@ -164,7 +171,7 @@ internal class BleTransport(
     }
 
     suspend fun query(address: String) {
-        checkPermissions(false)
+        checkConnectionPermission(address)
         val connection = connections[address]?.takeIf { it.ready && !it.closed }
             ?: throw BleFailure("Connect to the light over Bluetooth first.")
         connection.operations.withLock {
@@ -172,13 +179,32 @@ internal class BleTransport(
         }
     }
 
+    private fun checkConnectionPermission(address: String) {
+        try { checkPermissions(false) }
+        catch (failure: Exception) {
+            val error = when (failure) {
+                is BleFailure -> failure
+                is SecurityException -> BleFailure("Bluetooth permission was revoked.", BleFailureReason.PERMISSION)
+                else -> BleFailure("Bluetooth is unavailable.")
+            }
+            connections[address]?.let { disconnectOwned(address, it, error) }
+            throw error
+        }
+    }
+
     fun disconnect(address: String) = synchronized(lifecycle) {
         connections.remove(address)?.close()
         onConnection(address, BleConnection.DISCONNECTED, null)
     }
-    private fun disconnectOwned(address: String, owner: Connection) = synchronized(lifecycle) {
+    private fun disconnectOwned(address: String, owner: Connection, failure: BleFailure? = null) = synchronized(lifecycle) {
         owner.close()
-        if (connections.remove(address, owner)) onConnection(address, BleConnection.DISCONNECTED, null)
+        if (connections.remove(address, owner)) {
+            if (failure != null) {
+                failures[address] = failure.kind
+                Diagnostics.failure("Bluetooth GATT", failure)
+            }
+            onConnection(address, BleConnection.DISCONNECTED, null)
+        }
     }
     fun pause() = synchronized(lifecycle) { foreground = false; stopScan(); connections.keys.toList().forEach(::disconnect) }
     fun resume() = synchronized(lifecycle) { foreground = true }
@@ -206,23 +232,33 @@ internal class BleTransport(
                 if (!current(g)) { runCatching { g.close() }; return }
                 if (status != BluetoothGatt.GATT_SUCCESS || newState == BluetoothProfile.STATE_DISCONNECTED) {
                     val error = BleFailure(if (status == 5 || status == 15) "The light requires Bluetooth authentication. This model's pairing handshake is not supported yet."
-                        else "Bluetooth disconnected (GATT status $status). Move closer and close other apps connected to the light.")
+                        else "Bluetooth disconnected (GATT status $status). Move closer and close other apps connected to the light.",
+                        if (status == 5 || status == 15) BleFailureReason.AUTHENTICATION else BleFailureReason.RETRYABLE)
                     services.completeExceptionally(error)
                     pendingWrite?.completeExceptionally(error); pendingDescriptor?.completeExceptionally(error)
-                    disconnectOwned(address, this@Connection)
+                    disconnectOwned(address, this@Connection, error)
                 } else if (newState == BluetoothProfile.STATE_CONNECTED) {
                     try {
-                        if (!g.discoverServices()) services.completeExceptionally(BleFailure("Android could not start Bluetooth service discovery."))
+                        if (!g.discoverServices()) {
+                            val error = BleFailure("Android could not start Bluetooth service discovery.")
+                            services.completeExceptionally(error)
+                            disconnectOwned(address, this@Connection, error)
+                        }
                     } catch (_: SecurityException) {
-                        services.completeExceptionally(BleFailure("Bluetooth permission was revoked. Allow Nearby devices and reconnect."))
-                        disconnectOwned(address, this@Connection)
+                        val error = BleFailure("Bluetooth permission was revoked. Allow Nearby devices and reconnect.", BleFailureReason.PERMISSION)
+                        services.completeExceptionally(error)
+                        disconnectOwned(address, this@Connection, error)
                     }
                 }
             }
             override fun onServicesDiscovered(g: BluetoothGatt, status: Int) {
                 if (!current(g)) return
                 if (status == BluetoothGatt.GATT_SUCCESS) services.complete(Unit)
-                else services.completeExceptionally(BleFailure("Bluetooth service discovery failed (GATT status $status)."))
+                else {
+                    val error = BleFailure("Bluetooth service discovery failed (GATT status $status).", if (status == 5 || status == 15) BleFailureReason.AUTHENTICATION else BleFailureReason.RETRYABLE)
+                    services.completeExceptionally(error)
+                    disconnectOwned(address, this@Connection, error)
+                }
             }
             override fun onDescriptorWrite(g: BluetoothGatt, descriptor: BluetoothGattDescriptor, status: Int) {
                 if (current(g)) pendingDescriptor?.complete(status)
@@ -261,7 +297,9 @@ internal class BleTransport(
                     if (it.brightness != null) readBrightness = true
                     if (readPower && readBrightness) probe.complete(Unit)
                 }
-                onState(address, it)
+                synchronized(lifecycle) {
+                    if (!closed && connections[address] === this) onState(address, it)
+                }
             }
         }
         fun startRefresh() {
@@ -277,7 +315,14 @@ internal class BleTransport(
                         }
                     }
                 } catch (cancelled: CancellationException) { throw cancelled }
-                catch (_: Exception) { disconnectOwned(address, this@Connection) }
+                catch (failure: Exception) {
+                    val classified = when (failure) {
+                        is BleFailure -> failure
+                        is SecurityException -> BleFailure("Bluetooth permission was revoked.", BleFailureReason.PERMISSION)
+                        else -> BleFailure("Bluetooth state refresh failed.")
+                    }
+                    disconnectOwned(address, this@Connection, classified)
+                }
             }
         }
         @Suppress("DEPRECATION")
@@ -285,12 +330,12 @@ internal class BleTransport(
             val g = gatt ?: throw BleFailure("Bluetooth connection was closed.")
             val p = GoveeBleProtocol.profileFor(model)
             if (g.getService(UUID.fromString(p.serviceUuid))?.getCharacteristic(UUID.fromString(p.writeUuid)) == null)
-                throw BleFailure("This device exposes an unsupported Bluetooth service. No control packets were sent.")
+                throw BleFailure("This device exposes an unsupported Bluetooth service. No control packets were sent.", BleFailureReason.UNSUPPORTED)
             profile = p
             val service = g.getService(UUID.fromString(p.serviceUuid))
             val writer = service.getCharacteristic(UUID.fromString(p.writeUuid))
             val writable = writer.properties and (BluetoothGattCharacteristic.PROPERTY_WRITE or BluetoothGattCharacteristic.PROPERTY_WRITE_NO_RESPONSE) != 0
-            if (!writable) throw BleFailure("The Govee control characteristic is not writable.")
+            if (!writable) throw BleFailure("The Govee control characteristic is not writable.", BleFailureReason.UNSUPPORTED)
             writeCharacteristic = writer
             // The shipped client enables notifications across the communication service.
             // Discover actual notify/indicate properties instead of inventing a separate UUID.
@@ -298,18 +343,21 @@ internal class BleTransport(
                 it.properties and (BluetoothGattCharacteristic.PROPERTY_NOTIFY or BluetoothGattCharacteristic.PROPERTY_INDICATE) != 0 &&
                     it.getDescriptor(UUID.fromString(CCCD)) != null
             }
-            if (notifications.isEmpty()) throw BleFailure("The Govee notification characteristic or descriptor is missing. No control packets were sent.")
+            if (notifications.isEmpty()) throw BleFailure("The Govee notification characteristic or descriptor is missing. No control packets were sent.", BleFailureReason.UNSUPPORTED)
             for (notify in notifications) {
                 if (!g.setCharacteristicNotification(notify, true)) throw BleFailure("Android could not enable Bluetooth notifications.")
                 val cccd = notify.getDescriptor(UUID.fromString(CCCD))
                 val answer = CompletableDeferred<Int>(); pendingDescriptor = answer
                 val bytes = if (notify.properties and BluetoothGattCharacteristic.PROPERTY_NOTIFY != 0) BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE else BluetoothGattDescriptor.ENABLE_INDICATION_VALUE
                 try {
-                    val started = if (Build.VERSION.SDK_INT >= 33) g.writeDescriptor(cccd, bytes) == BluetoothStatusCodes.SUCCESS
-                    else { cccd.value = bytes; g.writeDescriptor(cccd) }
+                    val started = if (Build.VERSION.SDK_INT >= 33) {
+                        val result = g.writeDescriptor(cccd, bytes)
+                        if (result != BluetoothStatusCodes.SUCCESS) throw BleFailure("Android refused Bluetooth notification setup (status $result).", bleSubmissionFailureReason(result))
+                        true
+                    } else { cccd.value = bytes; g.writeDescriptor(cccd) }
                     if (!started) throw BleFailure("Android refused the Bluetooth notification setup.")
                     val status = withTimeout(5_000) { answer.await() }
-                    if (status != BluetoothGatt.GATT_SUCCESS) throw BleFailure("Bluetooth notification setup failed (GATT status $status).")
+                    if (status != BluetoothGatt.GATT_SUCCESS) throw BleFailure("Bluetooth notification setup failed (GATT status $status).", bleAttributeFailureReason(status))
                     subscribed.add(notify.uuid)
                 } finally { pendingDescriptor = null }
             }
@@ -333,17 +381,24 @@ internal class BleTransport(
             val type = if (writer.properties and BluetoothGattCharacteristic.PROPERTY_WRITE != 0) BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT else BluetoothGattCharacteristic.WRITE_TYPE_NO_RESPONSE
             val answer = CompletableDeferred<Int>(); pendingWrite = answer
             try {
-                val started = if (Build.VERSION.SDK_INT >= 33) g.writeCharacteristic(writer, bytes, type) == BluetoothStatusCodes.SUCCESS
-                else { writer.value = bytes; writer.writeType = type; g.writeCharacteristic(writer) }
+                val started = if (Build.VERSION.SDK_INT >= 33) {
+                    val result = g.writeCharacteristic(writer, bytes, type)
+                    if (result != BluetoothStatusCodes.SUCCESS) throw BleFailure("Android refused Bluetooth write (status $result).", bleSubmissionFailureReason(result))
+                    true
+                } else { writer.value = bytes; writer.writeType = type; g.writeCharacteristic(writer) }
                 if (!started) throw BleFailure("Android refused the Bluetooth write. Reconnect and retry.")
                 val status = withTimeout(5_000) { answer.await() }
-                if (status != BluetoothGatt.GATT_SUCCESS) throw BleFailure(if (status == 5 || status == 15) "This light requires an unsupported Bluetooth authentication handshake." else "Bluetooth write failed (GATT status $status).")
+                if (status != BluetoothGatt.GATT_SUCCESS) throw BleFailure("Bluetooth write failed (GATT status $status).", bleAttributeFailureReason(status))
             } catch (cancelled: CancellationException) {
                 // A late callback must never complete the next operation's deferred.
                 disconnectOwned(address, this)
                 if (cancelled is TimeoutCancellationException) throw BleFailure("Bluetooth write timed out. Reconnect and retry.")
                 throw cancelled
-            } catch (failure: Exception) { disconnectOwned(address, this); throw failure }
+            } catch (failure: Exception) {
+                val classified = if (failure is SecurityException) BleFailure("Bluetooth permission was revoked.", BleFailureReason.PERMISSION) else failure
+                disconnectOwned(address, this, classified as? BleFailure)
+                throw classified
+            }
             finally { pendingWrite = null }
         }
         fun close() {

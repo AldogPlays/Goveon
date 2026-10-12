@@ -35,6 +35,7 @@ import org.json.JSONTokener
 import java.text.DateFormat
 import java.util.Date
 import kotlin.math.roundToInt
+import kotlinx.coroutines.delay
 
 internal val coreCapabilities = setOf("powerSwitch", "brightness", "colorRgb", "colorTemperatureK")
 
@@ -42,10 +43,16 @@ internal val coreCapabilities = setOf("powerSwitch", "brightness", "colorRgb", "
 internal fun DeviceSheet(device: LightDevice, busy: Boolean, onDismiss: () -> Unit, onRefresh: () -> Unit,
     onScenes: () -> Unit, onSend: (LightCommand) -> Unit, onRename: (String) -> Unit, onForget: () -> Unit,
     onSaveAction: (List<LightCommand>) -> Unit, scenesLoading: Boolean = false, lastResponse: CommandResult? = null, now: Long = System.currentTimeMillis(),
-    onConnectBluetooth: () -> Unit = {}, onDisconnectBluetooth: () -> Unit = {}, onBluetoothModel: (String) -> Unit = {}) {
+    onConnectBluetooth: () -> Unit = {}, onDisconnectBluetooth: () -> Unit = {}, onBluetoothModel: (String) -> Unit = {}, sessionStatus: BleSessionStatus? = null) {
     var rename by remember { mutableStateOf(false) }
     var forgetting by remember { mutableStateOf(false) }
     var editingModel by remember { mutableStateOf(false) }
+    var more by rememberSaveable(device.id) { mutableStateOf(false) }
+    var about by rememberSaveable(device.id) { mutableStateOf(false) }
+    var feedbackVisible by remember(device.id, lastResponse) { mutableStateOf(lastResponse != null) }
+    LaunchedEffect(device.id, lastResponse) {
+        if (lastResponse?.successful == true) { delay(2500); feedbackVisible = false }
+    }
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
         Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 24.dp).padding(bottom = 32.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -57,70 +64,51 @@ internal fun DeviceSheet(device: LightDevice, busy: Boolean, onDismiss: () -> Un
                 IconButton(onClick = onDismiss) { Icon(Icons.Outlined.Close, "Close controls") }
             }
             if (device.bleAddress != null) {
-                Surface(shape = RoundedCornerShape(20.dp), color = MaterialTheme.colorScheme.primaryContainer) {
-                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                            Icon(Icons.Outlined.BluetoothConnected, null)
-                            Text(connectionLabel(device), style = MaterialTheme.typography.titleSmall)
-                        }
-                        device.bleRssi?.let { rssi -> Text("Last scan signal · $rssi dBm", style = MaterialTheme.typography.bodySmall) }
-                        Text("Direct connection · no account or API key. Goveon identifies the light's BLE GATT services before enabling supported controls.", style = MaterialTheme.typography.bodySmall)
-                        device.bleProfile?.takeIf { it != "unclassified" }?.let { profile ->
-                            Text(when (profile) {
-                                "bulb-v2" -> "H6005 profile · power, brightness, RGB"
-                                "color-0d" -> "Color profile identified from a device reply · power, brightness, RGB"
-                                else -> "Common lighting reads verified · power and brightness"
-                            }, style = MaterialTheme.typography.labelMedium)
-                        }
-                        if (device.bleConnection == BleConnection.CONNECTED) OutlinedButton(onClick = onDisconnectBluetooth, enabled = !busy, modifier = Modifier.fillMaxWidth()) { Text("Disconnect Bluetooth") }
-                        else Button(onClick = onConnectBluetooth, enabled = !busy && device.bleConnection != BleConnection.CONNECTING, modifier = Modifier.fillMaxWidth()) {
-                            Text(if (device.bleConnection == BleConnection.CONNECTING) "Connecting…" else "Connect Bluetooth")
-                        }
-                        if (device.bleProfile == null || device.bleProfile == "unclassified") {
-                            Text("If the advertisement omits the model, enter the H6xxx lighting SKU printed on the controller. Goveon still checks the actual GATT service and read replies.", style = MaterialTheme.typography.bodySmall)
-                            TextButton(onClick = { editingModel = true }, enabled = !busy) { Text("Set lighting model") }
-                        }
-                    }
-                }
+                BluetoothSessionFeedback(sessionStatus, device.bleConnection == BleConnection.CONNECTED, onConnectBluetooth)
+                if ((device.bleProfile == null || device.bleProfile == "unclassified") && device.bleConnection == BleConnection.CONNECTED)
+                    TextButton(onClick = { editingModel = true }, enabled = !busy) { Text("Set model") }
             }
-            Surface(shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.surfaceContainerHigh) {
-                Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Column(Modifier.weight(1f)) {
-                        Text(if (busy) "Sending / waiting…" else reportedState(device.state, now), style = MaterialTheme.typography.titleSmall)
-                        Text(if (device.state.lastUpdated > 0) "Reported ${DateFormat.getTimeInstance(DateFormat.SHORT).format(Date(device.state.lastUpdated))}" else "No state response yet", style = MaterialTheme.typography.bodySmall)
-                    }
-                    IconButton(onClick = onRefresh, enabled = !busy && (device.bleAddress == null || device.bleConnection == BleConnection.CONNECTED || device.ip != null || device.cloudAvailable)) { Icon(Icons.Outlined.Refresh, "Refresh light state") }
-                }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(if (busy) "Updating…" else reportedState(device.state, now), style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
+                IconButton(onClick = onRefresh, enabled = !busy && (device.bleAddress == null || device.bleConnection == BleConnection.CONNECTED || device.ip != null || device.cloudAvailable)) { Icon(Icons.Outlined.Refresh, "Refresh light state", Modifier.size(20.dp)) }
             }
             if (busy) LinearProgressIndicator(Modifier.fillMaxWidth())
-            lastResponse?.let { response ->
-                Surface(shape = RoundedCornerShape(16.dp), color = if (response.successful) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.errorContainer) {
-                    Row(Modifier.padding(16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Icon(if (response.status == CommandStatus.CONFIRMED) Icons.Outlined.CheckCircle else Icons.Outlined.Info, null, Modifier.size(20.dp))
-                        Text(response.message, style = MaterialTheme.typography.bodySmall)
-                    }
-                }
+            if (!busy && feedbackVisible) lastResponse?.let { response ->
+                if (response.successful) Text(commandSummary(response), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                else InlineFeedback(commandSummary(response), error = true)
             }
             if (device.bleAddress != null && coreCapabilities.none { device.supports(it) }) {
-                Text(if (device.bleConnection == BleConnection.CONNECTED) "Bluetooth is connected, but this model's lighting commands are not supported yet. Wi-Fi or cloud controls may be available for this model."
-                    else "Connect to identify this light's Bluetooth protocol. Controls appear only when Goveon can support them.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                if (device.bleConnection == BleConnection.CONNECTED) Text("Controls unavailable for this model.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             } else ControlPanel(listOf(device), !busy && (device.bleAddress == null || device.bleConnection == BleConnection.CONNECTED || device.ip != null || device.cloudAvailable), onSend)
             val extra = device.capabilities.filter { it.instance !in coreCapabilities }
-            if (device.cloudAvailable) {
+            if (extra.isNotEmpty()) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text("Scenes & effects", style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
-                    TextButton(onClick = onScenes, enabled = !busy && !scenesLoading) { Text(if (scenesLoading) "Loading…" else "Load scenes") }
+                    if (device.cloudAvailable) TextButton(onClick = onScenes, enabled = !busy && !scenesLoading) { Text(if (scenesLoading) "Loading…" else "Refresh") }
                 }
             }
             extra.forEach { capability -> CapabilityControl(capability, device.state.values[capability.instance], !busy, onSend) }
-            if (extra.isEmpty()) Text(if (device.bleAddress != null && !device.cloudAvailable) "Bluetooth controls depend on the light's discovered protocol. Unsupported model-specific effects are hidden. Optional cloud capabilities may add scenes."
-                else "Additional effects appear when this device reports them through the Developer API. LAN alone exposes basic light controls.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            val snapshot = stateCommands(device)
-            OutlinedButton(onClick = { onSaveAction(snapshot) }, enabled = snapshot.isNotEmpty(), modifier = Modifier.fillMaxWidth()) {
-                Icon(Icons.Outlined.Bolt, null); Spacer(Modifier.width(8.dp)); Text("Save reported state as action")
+            HorizontalDivider()
+            TextButton(onClick = { more = !more }, modifier = Modifier.fillMaxWidth()) {
+                Text("More"); Spacer(Modifier.width(8.dp)); Icon(if (more) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore, null)
             }
-            Text("${device.id}${device.bleAddress?.let { "\nBluetooth · $it" } ?: ""}${device.ip?.let { "\nWi-Fi · $it" } ?: ""}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            TextButton(onClick = { forgetting = true }, modifier = Modifier.fillMaxWidth()) { Text("Forget this light", color = MaterialTheme.colorScheme.error) }
+            if (more) {
+                val snapshot = stateCommands(device)
+                OutlinedButton(onClick = { onSaveAction(snapshot) }, enabled = snapshot.isNotEmpty(), modifier = Modifier.fillMaxWidth()) {
+                    Icon(Icons.Outlined.Bolt, null); Spacer(Modifier.width(8.dp)); Text("Save as quick action")
+                }
+                TextButton(onClick = { about = !about }, modifier = Modifier.fillMaxWidth()) { Text("About this light"); Spacer(Modifier.width(8.dp)); Icon(if (about) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore, null) }
+                if (about) {
+                    Text("Model ${device.model}", style = MaterialTheme.typography.bodySmall)
+                    if (device.bleAddress != null) Text("Nearby Bluetooth control without an account.", style = MaterialTheme.typography.bodySmall)
+                    device.bleRssi?.let { Text("Last scan signal · $it dBm", style = MaterialTheme.typography.bodySmall) }
+                    if (device.state.lastUpdated > 0) Text("Last reported ${DateFormat.getTimeInstance(DateFormat.SHORT).format(Date(device.state.lastUpdated))}", style = MaterialTheme.typography.bodySmall)
+                    if (device.ip != null && device.capability("colorTemperatureK") == null && GoveeBleProtocol.temperatureValues(device.bleProfile).isEmpty())
+                        Text("Available white temperatures vary by model.", style = MaterialTheme.typography.bodySmall)
+                }
+                TextButton(onClick = { forgetting = true }, modifier = Modifier.fillMaxWidth()) { Text("Forget this light", color = MaterialTheme.colorScheme.error) }
+            }
         }
     }
     if (rename) NameDialog("Rename light", device.displayName, { rename = false }) { onRename(it); rename = false }
@@ -146,7 +134,8 @@ internal fun stateCommands(device: LightDevice): List<LightCommand> = buildList 
 }
 
 @Composable
-internal fun GroupSheet(group: LightGroup, devices: List<LightDevice>, busy: Boolean, dismiss: () -> Unit, send: (LightCommand) -> Unit, edit: () -> Unit, loadScenes: () -> Unit, connectBluetooth: () -> Unit) {
+internal fun GroupSheet(group: LightGroup, devices: List<LightDevice>, busy: Boolean, dismiss: () -> Unit, send: (LightCommand) -> Unit, edit: () -> Unit, loadScenes: () -> Unit, connectBluetooth: () -> Unit,
+    failureReport: GroupResult? = null, reviewFailures: () -> Unit = {}, sessions: Map<String, BleSessionStatus> = emptyMap()) {
     ModalBottomSheet(onDismissRequest = dismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
         Column(Modifier.verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(18.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -154,22 +143,54 @@ internal fun GroupSheet(group: LightGroup, devices: List<LightDevice>, busy: Boo
                 IconButton(onClick = edit) { Icon(Icons.Outlined.Edit, "Edit group") }
                 IconButton(onClick = dismiss) { Icon(Icons.Outlined.Close, "Close group") }
             }
-            Text(devices.joinToString { it.displayName }, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text("Bluetooth controls use connected members. Group commands run concurrently; timing can differ between lights. Failures are listed by device.", style = MaterialTheme.typography.bodySmall)
+            Text("${devices.size} lights", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             val bluetoothMembers = devices.filter { it.bleAddress != null }
             if (bluetoothMembers.isNotEmpty()) {
                 Text("Bluetooth · ${bluetoothMembers.count { it.bleConnection == BleConnection.CONNECTED }}/${bluetoothMembers.size} connected", style = MaterialTheme.typography.titleSmall)
-                if (bluetoothMembers.any { it.bleConnection != BleConnection.CONNECTED }) FilledTonalButton(onClick = connectBluetooth, enabled = !busy, modifier = Modifier.fillMaxWidth()) {
-                    Icon(Icons.Outlined.BluetoothConnected, null); Spacer(Modifier.width(8.dp)); Text("Connect Bluetooth members")
-                }
+                val stopped = bluetoothMembers.mapNotNull { sessions[it.id] }.filter { it.phase == BleSessionPhase.STOPPED }
+                val needsSetup = stopped.any { it.reason in setOf(BleFailureReason.PERMISSION, BleFailureReason.RADIO_UNAVAILABLE) }
+                if (needsSetup || stopped.any { it.reason == BleFailureReason.RETRYABLE }) FilledTonalButton(onClick = connectBluetooth, enabled = !busy, modifier = Modifier.fillMaxWidth()) {
+                    Icon(Icons.Outlined.BluetoothConnected, null); Spacer(Modifier.width(8.dp)); Text(if (needsSetup) "Enable Bluetooth" else "Retry unavailable lights")
+                } else if (bluetoothMembers.any { sessions[it.id]?.phase in setOf(BleSessionPhase.CONNECTING, BleSessionPhase.RETRYING) })
+                    Text("Connecting nearby lights…", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             if (busy) LinearProgressIndicator(Modifier.fillMaxWidth())
-            val ready = devices.all { it.bleAddress == null || it.bleConnection == BleConnection.CONNECTED || it.ip != null || it.cloudAvailable }
+            failureReport?.let { report -> InlineFeedback("${report.failures.size} lights need attention", error = true) {
+                TextButton(onClick = reviewFailures) { Text("Review") }
+            } }
+            val ready = devices.any { it.bleAddress == null || it.bleConnection == BleConnection.CONNECTED || it.ip != null || it.cloudAvailable }
             ControlPanel(devices, !busy && ready, send)
             if (devices.all { it.cloudAvailable } && devices.isNotEmpty()) {
                 TextButton(onClick = loadScenes, enabled = !busy) { Text("Load shared scenes") }
                 commonCapabilities(devices).forEach { CapabilityControl(it, null, !busy, send) }
             }
+        }
+    }
+}
+
+@Composable
+private fun BluetoothSessionFeedback(status: BleSessionStatus?, connected: Boolean, retry: () -> Unit) {
+    when {
+        status?.phase == BleSessionPhase.STOPPED -> {
+            val message = when (status.reason) {
+                BleFailureReason.PERMISSION -> "Allow Bluetooth access to connect."
+                BleFailureReason.RADIO_UNAVAILABLE -> "Bluetooth is unavailable. Turn it on to connect."
+                BleFailureReason.UNSUPPORTED -> "Bluetooth control is unavailable for this model."
+                BleFailureReason.AUTHENTICATION -> "This model's connection method is not supported yet."
+                else -> "Couldn't reconnect. Check the light's power and move closer."
+            }
+            Text(message, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            if (status.reason !in setOf(BleFailureReason.UNSUPPORTED, BleFailureReason.AUTHENTICATION)) FilledTonalButton(onClick = retry) {
+                Text(if (status.reason in setOf(BleFailureReason.PERMISSION, BleFailureReason.RADIO_UNAVAILABLE)) "Enable Bluetooth" else "Retry connection")
+            }
+        }
+        connected -> Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Icon(Icons.Outlined.BluetoothConnected, null, Modifier.size(18.dp), tint = MaterialTheme.colorScheme.primary)
+            Text("Connected", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        else -> Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            CircularProgressIndicator(Modifier.size(16.dp), strokeWidth = 2.dp)
+            Text(if (status?.phase == BleSessionPhase.RETRYING) "Reconnecting…" else "Connecting…", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
@@ -188,18 +209,99 @@ internal fun ControlPanel(devices: List<LightDevice>, enabled: Boolean, send: (L
         }
     }
     if (supports("brightness")) {
-        val min = devices.mapNotNull { it.capability("brightness")?.min }.maxOrNull()?.coerceAtLeast(if (devices.any { it.ip != null }) 1 else 0) ?: 1
+        val min = devices.mapNotNull { it.capability("brightness")?.min }.maxOrNull()?.coerceAtLeast(if (devices.any { it.ip != null || GoveeBleProtocol.supports(it.bleProfile, "brightness") }) 1 else 0) ?: 1
         val max = devices.mapNotNull { it.capability("brightness")?.max }.minOrNull()?.coerceAtMost(100) ?: 100
         if (min < max) ValueSlider("Brightness", current.brightness ?: 50, min..max, "%", enabled) { send(LightCommand.Brightness(it)) }
     }
-    if (supports("colorRgb")) ColorControl(current.rgb, enabled) { send(LightCommand.Color(it)) }
-    if (supports("colorTemperatureK")) {
-        val min = devices.mapNotNull { it.capability("colorTemperatureK")?.min }.maxOrNull() ?: 2000
-        val max = devices.mapNotNull { it.capability("colorTemperatureK")?.max }.minOrNull() ?: 9000
-        if (min < max) ValueSlider("White temperature", current.temperatureKelvin?.takeIf { it in min..max } ?: min, min..max, " K", enabled) { send(LightCommand.Temperature(it)) }
-        if (devices.any { it.capability("colorTemperatureK") == null }) Text("LAN does not report a temperature range. This light may support only part of 2000–9000 K.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    val colorSupported = supports("colorRgb")
+    val whiteSupported = supports("colorTemperatureK")
+    val range = if (whiteSupported) sharedTemperatureRange(devices) else null
+    val whiteValues = if (range != null) sharedTemperatureValues(devices, range) else null
+    val whiteAvailable = range != null && (whiteValues == null || whiteValues.isNotEmpty())
+    val controlIdentity = devices.map { it.id }.sorted().joinToString()
+    var savedRgb by rememberSaveable(controlIdentity) { mutableIntStateOf(current.rgb?.takeIf { (current.temperatureKelvin ?: 0) == 0 } ?: 0xFFFFFF) }
+    var savedWhite by rememberSaveable(controlIdentity) { mutableIntStateOf(current.temperatureKelvin?.takeIf { it > 0 } ?: 4000) }
+    LaunchedEffect(controlIdentity, current.rgb, current.temperatureKelvin) {
+        current.rgb?.takeIf { (current.temperatureKelvin ?: 0) == 0 }?.let { savedRgb = it }
+        current.temperatureKelvin?.takeIf { it > 0 }?.let { savedWhite = it }
     }
-    if (coreCapabilities.none { supports(it) }) Text("No common basic controls. Open individual lights for their supported capabilities.")
+    var whiteMode by rememberSaveable(controlIdentity, colorSupported, whiteAvailable) {
+        mutableStateOf(whiteAvailable && (!colorSupported || (current.temperatureKelvin ?: 0) > 0))
+    }
+    var modeTouched by rememberSaveable(controlIdentity) { mutableStateOf(false) }
+    LaunchedEffect(current.temperatureKelvin, whiteAvailable) {
+        if (!modeTouched && current.temperatureKelvin != null)
+            whiteMode = whiteAvailable && (!colorSupported || current.temperatureKelvin > 0)
+    }
+    fun selectedWhite(): Int {
+        val desired = savedWhite
+        return whiteValues?.minByOrNull { kotlin.math.abs(it - desired) } ?: desired.coerceIn(requireNotNull(range))
+    }
+    if (colorSupported && whiteAvailable) {
+        Text("Light mode", style = MaterialTheme.typography.titleMedium)
+        SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+            SegmentedButton(selected = !whiteMode, enabled = enabled, shape = SegmentedButtonDefaults.itemShape(0, 2),
+                onClick = { if (whiteMode) { modeTouched = true; whiteMode = false; send(LightCommand.Color(savedRgb)) } },
+                icon = { SegmentedButtonDefaults.Icon(!whiteMode) { Icon(Icons.Outlined.Palette, null, Modifier.size(18.dp)) } }) { Text("RGB") }
+            SegmentedButton(selected = whiteMode, enabled = enabled, shape = SegmentedButtonDefaults.itemShape(1, 2),
+                onClick = { if (!whiteMode) { modeTouched = true; whiteMode = true; send(LightCommand.Temperature(selectedWhite())) } },
+                icon = { SegmentedButtonDefaults.Icon(whiteMode) { Icon(Icons.Outlined.WbSunny, null, Modifier.size(18.dp)) } }) { Text("White") }
+        }
+    }
+    if (whiteAvailable && (whiteMode || !colorSupported)) {
+        WhiteControl(selectedWhite(), requireNotNull(range), whiteValues, enabled) { savedWhite = it; send(LightCommand.Temperature(it)) }
+    } else if (colorSupported) ColorControl(savedRgb, enabled) { savedRgb = it; send(LightCommand.Color(it)) }
+    if (coreCapabilities.none { supports(it) }) Text("These lights don't share supported controls.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+}
+
+private fun sharedTemperatureRange(devices: List<LightDevice>): IntRange? {
+    val ranges = devices.map { device ->
+        val advertised = device.capability("colorTemperatureK")
+        val ble = GoveeBleProtocol.temperatureRange(device.bleProfile)
+        val deviceRanges = listOfNotNull(ble, if (advertised?.min != null && advertised.max != null) advertised.min..advertised.max else null)
+        if (deviceRanges.isEmpty()) {
+            if (device.ip != null) 2000..9000 else return null
+        } else deviceRanges.maxOf { it.first }..deviceRanges.minOf { it.last }
+    }
+    if (ranges.isEmpty()) return null
+    val min = ranges.maxOf { it.first }
+    val max = ranges.minOf { it.last }
+    return (min..max).takeIf { min <= max }
+}
+
+private fun sharedTemperatureValues(devices: List<LightDevice>, range: IntRange): List<Int>? {
+    val bleLists = devices.map { GoveeBleProtocol.temperatureValues(it.bleProfile) }.filter { it.isNotEmpty() }
+    val quantized = devices.any { device -> device.capability("colorTemperatureK")?.let { JSONObject(it.parametersJson).optJSONObject("range")?.optInt("precision", 1) ?: 1 }?.let { it > 1 } == true }
+    if (bleLists.isEmpty() && !quantized && range.first != range.last) return null
+    val candidates = bleLists.firstOrNull() ?: range.toList()
+    return candidates.distinct().sorted().filter { kelvin -> kelvin in range && bleLists.all { kelvin in it } && devices.all { device ->
+        val cap = device.capability("colorTemperatureK")
+        val precision = cap?.let { JSONObject(it.parametersJson).optJSONObject("range")?.optInt("precision", 1) } ?: 1
+        precision <= 1 || (kelvin - (cap?.min ?: 0)) % precision == 0
+    } }
+}
+
+@Composable
+private fun WhiteControl(initial: Int, range: IntRange, values: List<Int>?, enabled: Boolean, send: (Int) -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Text("White temperature", style = MaterialTheme.typography.titleMedium)
+        Box(Modifier.fillMaxWidth().height(48.dp).clip(RoundedCornerShape(16.dp)).background(
+            Brush.horizontalGradient(listOf(Color(0xFFFFBD72), Color(0xFFFFF1D9), Color(0xFFE3EEFF)))))
+        if (values != null && values.size > 1) {
+            var index by remember(initial, values) { mutableIntStateOf(values.indices.minBy { kotlin.math.abs(values[it] - initial) }) }
+            Row { Text("Warm", modifier = Modifier.weight(1f), style = MaterialTheme.typography.labelMedium); Text("${values[index]} K", color = MaterialTheme.colorScheme.primary); Text("Cool", modifier = Modifier.weight(1f), style = MaterialTheme.typography.labelMedium, textAlign = androidx.compose.ui.text.style.TextAlign.End) }
+            Slider(index.toFloat(), { index = it.roundToInt().coerceIn(values.indices) }, valueRange = 0f..values.lastIndex.toFloat(),
+                steps = (values.size - 2).coerceAtLeast(0), enabled = enabled, onValueChangeFinished = { send(values[index]) },
+                modifier = Modifier.semantics { contentDescription = "White temperature" })
+        } else if (values?.size == 1) Text("${values.first()} K", style = MaterialTheme.typography.titleMedium)
+        else ValueSlider("Temperature", initial, range, " K", enabled, send)
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            listOf("Warm" to 2700, "Balanced" to 4000, "Cool" to 6500).forEach { (name, desired) ->
+                val kelvin = values?.minByOrNull { kotlin.math.abs(it - desired) } ?: desired.coerceIn(range)
+                OutlinedButton(onClick = { send(kelvin) }, enabled = enabled, modifier = Modifier.weight(1f), contentPadding = PaddingValues(horizontal = 6.dp, vertical = 12.dp)) { Text(name, maxLines = 1) }
+            }
+        }
+    }
 }
 
 @Composable
@@ -220,6 +322,7 @@ private fun ColorControl(initial: Int?, enabled: Boolean, send: (Int) -> Unit) {
     var value by remember(initial) { mutableFloatStateOf(hsv[2]) }
     val rgb = android.graphics.Color.HSVToColor(floatArrayOf(hue, saturation, value)) and 0xFFFFFF
     var hex by remember(rgb) { mutableStateOf("%06X".format(rgb)) }
+    var advanced by rememberSaveable { mutableStateOf(false) }
     val colors = listOf(0xFFAF45, 0xFF5276, 0xB16CFF, 0x557BFF, 0x42D7EF, 0x60DB9A)
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Text("Color", style = MaterialTheme.typography.titleMedium)
@@ -231,17 +334,20 @@ private fun ColorControl(initial: Int?, enabled: Boolean, send: (Int) -> Unit) {
         Slider(hue, { hue = it }, enabled = enabled, valueRange = 0f..360f, onValueChangeFinished = { send(rgb) }, modifier = Modifier.semantics { contentDescription = "Color hue" })
         Text("Saturation · ${(saturation * 100).roundToInt()}%", style = MaterialTheme.typography.labelLarge)
         Slider(saturation, { saturation = it }, enabled = enabled, onValueChangeFinished = { send(rgb) }, modifier = Modifier.semantics { contentDescription = "Color saturation" })
-        Text("Color intensity · ${(value * 100).roundToInt()}%", style = MaterialTheme.typography.labelLarge)
-        Slider(value, { value = it }, enabled = enabled, onValueChangeFinished = { send(rgb) }, modifier = Modifier.semantics { contentDescription = "Color intensity" })
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            OutlinedTextField(hex, { hex = it.removePrefix("#").take(6) }, label = { Text("Hex color") }, prefix = { Text("#") }, singleLine = true,
-                isError = hex.length != 6 || hex.toIntOrNull(16) == null, modifier = Modifier.weight(1f))
-            FilledTonalButton(onClick = { hex.toIntOrNull(16)?.let(send) }, enabled = enabled && hex.length == 6 && hex.toIntOrNull(16) != null) { Text("Apply") }
-        }
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             colors.forEach { color ->
                 IconButton(onClick = { send(color) }, enabled = enabled, modifier = Modifier.size(48.dp).clip(CircleShape).background(Color(color or 0xFF000000.toInt()))
                     .semantics { contentDescription = "Set color #%06X".format(color) }) { }
+            }
+        }
+        TextButton(onClick = { advanced = !advanced }) { Text("Advanced color"); Spacer(Modifier.width(8.dp)); Icon(if (advanced) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore, null) }
+        if (advanced) {
+            Text("Color intensity · ${(value * 100).roundToInt()}%", style = MaterialTheme.typography.labelLarge)
+            Slider(value, { value = it }, enabled = enabled, onValueChangeFinished = { send(rgb) }, modifier = Modifier.semantics { contentDescription = "Color intensity" })
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                OutlinedTextField(hex, { hex = it.removePrefix("#").take(6) }, label = { Text("Hex color") }, prefix = { Text("#") }, singleLine = true,
+                    isError = hex.length != 6 || hex.toIntOrNull(16) == null, modifier = Modifier.weight(1f))
+                FilledTonalButton(onClick = { hex.toIntOrNull(16)?.let(send) }, enabled = enabled && hex.length == 6 && hex.toIntOrNull(16) != null) { Text("Apply") }
             }
         }
     }
@@ -255,7 +361,7 @@ internal fun CapabilityControl(capability: LightCapability, current: String?, en
             Row(Modifier.fillMaxWidth().clickable { expanded = !expanded }.heightIn(min = 48.dp), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
                     Text(prettyCapability(capability.instance), style = MaterialTheme.typography.titleMedium)
-                    if (current != null) Text("Reported: $current", style = MaterialTheme.typography.bodySmall, maxLines = 2)
+                    capability.options.firstOrNull { it.valueJson == current }?.let { Text(it.name, style = MaterialTheme.typography.bodySmall, maxLines = 1) }
                 }
                 Icon(if (expanded) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore, if (expanded) "Collapse" else "Expand")
             }

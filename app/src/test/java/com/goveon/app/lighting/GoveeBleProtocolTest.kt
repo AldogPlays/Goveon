@@ -6,6 +6,60 @@ import org.junit.Test
 class GoveeBleProtocolTest {
     private fun hex(packet: ByteArray) = packet.joinToString("") { "%02x".format(it.toInt() and 255) }
 
+    @Test fun `H6006 family uses vendor native percent and never inherits the older bulb scale`() {
+        for (percent in listOf(1, 50, 100)) {
+            val packet = GoveeBleProtocol.command("bulb-v3", LightCommand.Brightness(percent)).single()
+            assertEquals(percent, packet[2].toInt() and 255)
+            assertEquals(percent, GoveeBleProtocol.parseState("bulb-v3", GoveeBleProtocol.frame(0xAA, 4, byteArrayOf(percent.toByte())))!!.brightness)
+        }
+    }
+
+    @Test fun `H6006 family gets its own native white range instead of guessed RGB capability`() {
+        for (sku in listOf("H6004", "H6006", "H6008", "H6009", "H600A", "H6010", "H600D")) {
+            assertEquals("bulb-v3", GoveeBleProtocol.profileFor(sku).id)
+        }
+        assertEquals((2700..6500 step 100).toList(), GoveeBleProtocol.temperatureValues("bulb-v3"))
+        assertEquals("33050dffffff0fa0ffd5a10000000000000000e0", hex(GoveeBleProtocol.command("bulb-v3", LightCommand.Temperature(4000)).single()))
+        assertThrows(IllegalArgumentException::class.java) { GoveeBleProtocol.command("bulb-v3", LightCommand.Temperature(2600)) }
+        assertThrows(IllegalArgumentException::class.java) { GoveeBleProtocol.command("bulb-v3", LightCommand.Temperature(6600)) }
+    }
+
+    @Test fun `bulb brightness percent converts to physical scale instead of writing percent directly`() {
+        val vectors = mapOf(1 to 20, 50 to 136, 100 to 254)
+        for ((percent, raw) in vectors) {
+            val write = GoveeBleProtocol.command("bulb-v2", LightCommand.Brightness(percent)).single()
+            assertEquals(raw, write[2].toInt() and 255)
+            assertEquals(percent, GoveeBleProtocol.parseState("bulb-v2", GoveeBleProtocol.frame(0xAA, 4, byteArrayOf(raw.toByte())))!!.brightness)
+        }
+        assertNull(GoveeBleProtocol.parseState("bulb-v2", GoveeBleProtocol.frame(0xAA, 4, byteArrayOf(0xFF.toByte()))))
+        assertNull(GoveeBleProtocol.parseState("common-light", GoveeBleProtocol.frame(0xAA, 4, byteArrayOf(136.toByte()))))
+    }
+
+    @Test fun `white mode uses actual bulb lookup channels big endian Kelvin and XOR`() {
+        assertEquals("33050dffffff0a8cffae54000000000000000047", hex(GoveeBleProtocol.command("bulb-v2", LightCommand.Temperature(2700)).single()))
+        assertEquals("33050dffffff0fa0ffd5a10000000000000000e0", hex(GoveeBleProtocol.command("bulb-v2", LightCommand.Temperature(4000)).single()))
+        assertEquals("33050dffffff1964fff9fb000000000000000044", hex(GoveeBleProtocol.command("bulb-v2", LightCommand.Temperature(6500)).single()))
+    }
+    @Test fun `white values are exact table entries and RGB clears the white channel fields`() {
+        assertEquals((1800..9000 step 100).toList(), GoveeBleProtocol.temperatureValues("bulb-v2"))
+        for (kelvin in GoveeBleProtocol.temperatureValues("bulb-v2")) {
+            val packet = GoveeBleProtocol.command("bulb-v2", LightCommand.Temperature(kelvin)).single()
+            assertTrue(GoveeBleProtocol.valid(packet))
+            assertEquals(kelvin, GoveeBleProtocol.parseState("bulb-v2", GoveeBleProtocol.frame(0xAA, 5, packet.copyOfRange(2, 11)))!!.temperatureKelvin)
+        }
+        val rgb = GoveeBleProtocol.command("bulb-v2", LightCommand.Color(0x123456)).single()
+        assertArrayEquals(ByteArray(5), rgb.copyOfRange(6, 11))
+    }
+    @Test fun `inferred color mode alone cannot enable white writes or arbitrary Kelvin`() {
+        assertFalse(GoveeBleProtocol.supports("color-0d", "colorTemperatureK"))
+        assertTrue(GoveeBleProtocol.temperatureValues("color-0d").isEmpty())
+        assertNull(GoveeBleProtocol.temperatureRange("common-light"))
+        assertThrows(IllegalArgumentException::class.java) { GoveeBleProtocol.command("color-0d", LightCommand.Temperature(4000)) }
+        for (kelvin in listOf(1799, 9001, 4050, -1)) {
+            assertThrows(IllegalArgumentException::class.java) { GoveeBleProtocol.command("bulb-v2", LightCommand.Temperature(kelvin)) }
+        }
+    }
+
     @Test fun `power packets match the recovered switch controller and XOR builder`() {
         assertEquals("3301010000000000000000000000000000000033", hex(GoveeBleProtocol.command("common-light", LightCommand.Power(true)).single()))
         assertEquals("3301000000000000000000000000000000000032", hex(GoveeBleProtocol.command("common-light", LightCommand.Power(false)).single()))
@@ -19,8 +73,8 @@ class GoveeBleProtocolTest {
     @Test fun `H6005 color frame includes recovered selector RGB and cleared white fields`() {
         assertEquals("bulb-v2", GoveeBleProtocol.profileFor("H6005").id)
         assertEquals("33050dff00800000000000000000000000000044", hex(GoveeBleProtocol.command("bulb-v2", LightCommand.Color(0xFF0080)).single()))
-        assertEquals("unclassified", GoveeBleProtocol.profileFor("H6008").id)
-        assertFalse(GoveeBleProtocol.supports(GoveeBleProtocol.profileFor("H6008").id, "colorRgb"))
+        assertEquals("bulb-v3", GoveeBleProtocol.profileFor("H6008").id)
+        assertEquals("unclassified", GoveeBleProtocol.profileFor("H6002").id)
     }
     @Test fun `color read replies use exact mode selector stripping and big endian Kelvin`() {
         val reply = GoveeBleProtocol.frame(0xAA, 0x05, byteArrayOf(0x0D, 0xFE.toByte(), 0x80.toByte(), 1, 0x19, 0x64, 1, 2, 3))

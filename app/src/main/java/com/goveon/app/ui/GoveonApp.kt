@@ -4,6 +4,7 @@ package com.goveon.app.ui
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -59,6 +60,7 @@ fun GoveonApp(vm: GoveonViewModel) {
     val busy by vm.busy.collectAsStateWithLifecycle()
     val failureReport by vm.failureReport.collectAsStateWithLifecycle()
     val responses by vm.lastResponses.collectAsStateWithLifecycle()
+    val bluetoothSessions by vm.bluetoothSessions.collectAsStateWithLifecycle()
     val now by freshnessClock()
     GoveonTheme(state.settings) {
         val bluetoothAccess = rememberBluetoothAccess()
@@ -71,10 +73,15 @@ fun GoveonApp(vm: GoveonViewModel) {
         var groupEditor by rememberSaveable { mutableStateOf(false) }
         var editAction by remember { mutableStateOf<QuickAction?>(null) }
         var actionEditor by rememberSaveable { mutableStateOf(false) }
-        val snackbar = remember { SnackbarHostState() }
-        LaunchedEffect(vm) { vm.messages.collect { snackbar.showSnackbar(it) } }
+        var notice by remember { mutableStateOf<String?>(null) }
+        var reviewFailures by remember { mutableStateOf(false) }
+        LaunchedEffect(vm) { vm.messages.collect { notice = briefNotice(it) } }
+        LaunchedEffect(notice) { if (notice != null) { delay(6000); notice = null } }
+        val activeControlIds = deviceId?.let { setOf(it) }
+            ?: state.groups.firstOrNull { it.id == groupId }?.deviceIds.orEmpty()
+        LaunchedEffect(activeControlIds) { vm.setActiveControls(activeControlIds) }
+        DisposableEffect(vm) { onDispose { vm.setActiveControls(emptySet()) } }
         Scaffold(
-            snackbarHost = { SnackbarHost(snackbar) },
             topBar = {
                 TopAppBar(title = { Text("Goveon", fontWeight = FontWeight.Bold) }, actions = {
                     if (destination == Destination.LIGHTS) {
@@ -93,12 +100,24 @@ fun GoveonApp(vm: GoveonViewModel) {
                 }
             },
         ) { insets ->
-            AnimatedContent(destination, modifier = Modifier.padding(insets).fillMaxSize(), label = "navigation") { screen ->
-                when (screen) {
-                    Destination.LIGHTS -> LightsScreen(state, busy, discoverBluetooth, vm::scan, { destination = Destination.SETTINGS }, { deviceId = it }, vm::send, now, connectBluetooth)
-                    Destination.GROUPS -> GroupsScreen(state, { editGroup = null; groupEditor = true }, { groupId = it }, { editGroup = it; groupEditor = true })
-                    Destination.ACTIONS -> ActionsScreen(state, busy, { editAction = null; actionEditor = true }, vm::runAction, { editAction = it; actionEditor = true })
-                    Destination.SETTINGS -> SettingsScreen(state, busy, vm::settings, vm::apiKey)
+            Column(Modifier.padding(insets).fillMaxSize()) {
+                AnimatedVisibility(notice != null) {
+                    Box(Modifier.padding(horizontal = 20.dp, vertical = 6.dp)) { notice?.let { InlineFeedback(it, onDismiss = { notice = null }) } }
+                }
+                failureReport?.takeIf { deviceId == null && groupId == null }?.let { report ->
+                    Box(Modifier.padding(horizontal = 20.dp, vertical = 6.dp)) {
+                        InlineFeedback("${report.failures.size} lights need attention", true, vm::dismissReport) {
+                            TextButton(onClick = { reviewFailures = true }) { Text("Review") }
+                        }
+                    }
+                }
+                AnimatedContent(destination, modifier = Modifier.weight(1f).fillMaxWidth(), label = "navigation") { screen ->
+                    when (screen) {
+                        Destination.LIGHTS -> LightsScreen(state, busy, discoverBluetooth, vm::scan, { destination = Destination.SETTINGS }, { deviceId = it }, vm::send, now, connectBluetooth)
+                        Destination.GROUPS -> GroupsScreen(state, { editGroup = null; groupEditor = true }, { groupId = it }, { editGroup = it; groupEditor = true })
+                        Destination.ACTIONS -> ActionsScreen(state, busy, { editAction = null; actionEditor = true }, vm::runAction, { editAction = it; actionEditor = true })
+                        Destination.SETTINGS -> SettingsScreen(state, busy, vm::settings, vm::apiKey)
+                    }
                 }
             }
         }
@@ -114,8 +133,9 @@ fun GoveonApp(vm: GoveonViewModel) {
                 scenesLoading = "scenes:${device.id}" in busy,
                 lastResponse = responses[device.id],
                 now = now,
-                onConnectBluetooth = { connectBluetooth(device.id) },
+                onConnectBluetooth = { bluetoothAccess { vm.retryBluetoothControls() } },
                 onDisconnectBluetooth = { vm.disconnectBluetooth(device.id) },
+                sessionStatus = bluetoothSessions[device.id],
                 onBluetoothModel = { vm.bluetoothModel(device.id, it) },
                 onSaveAction = { commands ->
                     editAction = QuickAction("", "${device.displayName} preset", setOf(device.id), commands)
@@ -125,7 +145,8 @@ fun GoveonApp(vm: GoveonViewModel) {
         state.groups.firstOrNull { it.id == groupId }?.let { group ->
             GroupSheet(group, state.devices.filter { it.id in group.deviceIds }, "group:${group.id}" in busy || "group-connect:${group.id}" in busy,
                 { groupId = null }, { vm.sendGroup(group.id, it) }, { editGroup = group; groupEditor = true; groupId = null },
-                { group.deviceIds.forEach(vm::scenes) }, { bluetoothAccess { vm.connectBluetoothGroup(group.id) } })
+                { group.deviceIds.forEach(vm::scenes) }, { bluetoothAccess { vm.retryBluetoothControls() } },
+                failureReport?.takeIf { report -> report.results.any { it.deviceId in group.deviceIds } }, { reviewFailures = true }, bluetoothSessions)
         }
         if (groupEditor) GroupEditor(editGroup, state.devices, { groupEditor = false },
             { name, ids -> vm.saveGroup(editGroup?.id, name, ids); groupEditor = false },
@@ -134,17 +155,17 @@ fun GoveonApp(vm: GoveonViewModel) {
             { name, ids, commands -> vm.saveAction(editAction?.id?.takeIf { it.isNotBlank() }, name, ids, commands); actionEditor = false },
             { editAction?.let { vm.deleteAction(it.id) }; actionEditor = false },
             { ids -> ids.forEach(vm::scenes) })
-        failureReport?.let { report ->
-            AlertDialog(onDismissRequest = vm::dismissReport, title = { Text("Group results") }, text = {
+        if (reviewFailures) failureReport?.let { report ->
+            AlertDialog(onDismissRequest = { reviewFailures = false }, title = { Text("Lights needing attention") }, text = {
                 LazyColumn(Modifier.heightIn(max = 420.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                    items(report.results) { result ->
+                    items(report.failures) { result ->
                         Column {
-                            Text(state.devices.firstOrNull { it.id == result.deviceId }?.displayName ?: result.deviceId, fontWeight = FontWeight.SemiBold)
-                            Text(result.message, color = if (result.successful) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.error)
+                            Text(state.devices.firstOrNull { it.id == result.deviceId }?.displayName ?: "Unavailable light", fontWeight = FontWeight.SemiBold)
+                            Text(commandSummary(result), color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
                 }
-            }, confirmButton = { TextButton(onClick = vm::dismissReport) { Text("Done") } })
+            }, confirmButton = { TextButton(onClick = { reviewFailures = false; vm.dismissReport() }) { Text("Done") } })
         }
     }
 }
@@ -163,7 +184,7 @@ private fun LightsScreen(state: AppState, busy: Set<String>, discover: () -> Uni
                 }
             }
         }
-        state.error?.let { item { Notice(it, error = true) } }
+        state.error?.let { item { InlineFeedback(failureSummary(it), error = true) } }
         if (state.devices.isEmpty()) item {
             Card(shape = RoundedCornerShape(28.dp)) {
                 Column(Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
