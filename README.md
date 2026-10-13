@@ -4,6 +4,45 @@ A small, independent Android home for your Govee lights. Kotlin, Jetpack Compose
 
 **First release: 1.0.0.** Android 8.0/API 26 or newer. No account, developer key, cloud service, analytics or Goveon server. See [device coverage](docs/ble-protocol.md), [manual checks](docs/testing.md) and [release notes](docs/release-notes-1.0.0.md).
 
+## Screenshots
+
+Click a screenshot to view it larger.
+
+<table>
+  <tr>
+    <td align="center">
+      <a href="docs/Screenshot_20261012-215029.png">
+        <img src="docs/Screenshot_20261012-215029.png" alt="Goveon Lights page with saved Bluetooth lights and discovery" width="260">
+      </a>
+      <br>
+      <sub>Your lights</sub>
+    </td>
+    <td align="center">
+      <a href="docs/Screenshot_20261012-215047.png">
+        <img src="docs/Screenshot_20261012-215047.png" alt="Connected light controls with power, brightness, and white temperature presets" width="260">
+      </a>
+      <br>
+      <sub>White temperature controls</sub>
+    </td>
+  </tr>
+  <tr>
+    <td align="center">
+      <a href="docs/Screenshot_20261012-215109.png">
+        <img src="docs/Screenshot_20261012-215109.png" alt="Bedroom group controls with three connected lights, brightness, hue, and saturation" width="260">
+      </a>
+      <br>
+      <sub>Group color controls</sub>
+    </td>
+    <td align="center">
+      <a href="docs/Screenshot_20261012-215138.png">
+        <img src="docs/Screenshot_20261012-215138.png" alt="Quick actions page with an option to create a lighting recipe" width="260">
+      </a>
+      <br>
+      <sub>Quick actions</sub>
+    </td>
+  </tr>
+</table>
+
 ## Controls
 
 - Discover nearby lights and connect directly over Bluetooth. Connections follow the open light/group page and reconnect quietly with bounded retries.
