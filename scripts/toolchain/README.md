@@ -34,12 +34,15 @@ Verified SHA-256 values:
 
 Official sources: [Temurin](https://adoptium.net/temurin/releases/), [Android SDK tools](https://developer.android.com/studio#command-tools), [JADX release](https://github.com/1013503897/jadx-headless-mcp/releases/tag/v0.7.1), [Gradle checksum](https://services.gradle.org/distributions/gradle-8.11.1-bin.zip.sha256).
 
-## GitHub Actions
+## Local validation only
 
-`.github/workflows/android.yml` runs on pull requests, pushes to `main`, and manual dispatch. It uses GitHub's Ubuntu 24.04 image, Temurin 17, Android API 35/build tools 35.0.0, and the checked-in Gradle wrapper. It runs JVM unit tests, Android lint, and debug APK assembly. Successful runs upload a debug APK with its SHA-256 checksum; test and lint reports upload even after a failed build when available. Artifacts remain available for 14 days on the workflow run's page.
+GitHub Actions is disabled for this repository, and its Android workflow has been removed. Keep builds, tests, lint and privacy checks local; do not add workflows or enable Actions unless the owner explicitly authorizes it.
 
-Actions are pinned to exact commits resolved from their official release tags on October 12, 2026: [checkout 7.0.1](https://github.com/actions/checkout/releases/tag/v7.0.1), [setup-java 6.0.1](https://github.com/actions/setup-java/releases/tag/v6.0.1), [setup-gradle 6.4.0](https://github.com/gradle/actions/releases/tag/v6.4.0), and [upload-artifact 7.0.2](https://github.com/actions/upload-artifact/releases/tag/v7.0.2). Gradle uses its open-source basic cache provider, validates the wrapper JAR, and restricts pull-request runs to reading the cache. Repository permissions are read-only and checkout does not retain Git credentials. The workflow does not publish a release or communicate with a phone.
+Run both variants from the repository root with the configured JDK and Android SDK:
 
-CI verifies buildability and offline checks. It has no emulator or physical lights, so BLE/LAN hardware behavior, synchronization latency, and device-specific effects still require the documented hardware test plan. Hosted images and package repositories can change or become unavailable; SDK package versions and the Gradle distribution checksum are explicit. CI debug APKs use the runner certificate and must not replace published release assets. Version 1.0 is an optimized, non-debuggable release build signed offline with the existing local certificate for update continuity. Keep its private keystore outside Git; never publish signing secrets. CI verifies both variants but uploads only its debug APK for development.
+```powershell
+./gradlew.bat --no-daemon --console=plain --max-workers=2 -Pkotlin.compiler.execution.strategy=in-process :app:testDebugUnitTest :app:lintDebug :app:assembleDebug :app:testReleaseUnitTest :app:lintRelease :app:assembleRelease
+./scripts/check-public-files.ps1 -History
+```
 
-Primary workflow references: [Ubuntu 24.04 runner tools](https://github.com/actions/runner-images/blob/main/images/ubuntu/Ubuntu2404-Readme.md), [Gradle Actions guide](https://docs.gradle.org/current/userguide/github-actions.html), and [artifact upload inputs](https://github.com/actions/upload-artifact#usage).
+Use `./gradlew` on Linux/macOS. Successful local checks verify buildability and offline behavior; BLE/LAN hardware behavior, synchronization latency and device-specific effects still require the documented hardware test plan. Version 1.0 is an optimized, non-debuggable release build signed offline with the existing local certificate for update continuity. Keep its private keystore outside Git; never publish signing secrets.

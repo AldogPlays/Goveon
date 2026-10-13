@@ -22,7 +22,7 @@ The release APK uses the optimized, obfuscated, non-debuggable release variant. 
 77f9997d82bfa4905a30e7460a9fef43cc171ad1c367d2f44112b00023317135
 ```
 
-It is signed offline with the previous local certificate for in-place update continuity. The certificate is labelled Android Debug; the private keystore is ignored and is not published. Fresh Gradle release builds are unsigned until signed. The packaging script accepts passwords only through transient environment variables, verifies the requested version, aligns and signs, and produces the checksum. CI validates both variants and uploads only its separately signed debug APK for development; that certificate/checksum need not match the release asset.
+It is signed offline with the previous local certificate for in-place update continuity. The certificate is labelled Android Debug; the private keystore is ignored and is not published. Fresh Gradle release builds are unsigned until signed. The packaging script accepts passwords only through transient environment variables, verifies the requested version, aligns and signs, and produces the checksum. Both variants are validated locally. GitHub Actions is disabled, and its workflow has been removed.
 
 The original SDK XML-version advisory and deprecated `ConnectivityManager.allNetworks` warning remain. Neither prevents compilation or packaging. R8 optimizes the release build; successful JVM tests do not execute the optimized APK on a phone.
 

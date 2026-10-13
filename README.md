@@ -87,7 +87,7 @@ Use JDK 17, Android SDK Platform 35 and build tools 35.0.0:
 
 Use `./gradlew` on Linux/macOS. `./scripts/toolchain.ps1 build` selects the configured workspace-local tools. See [toolchain setup](scripts/toolchain/README.md).
 
-Download the signed APK from [Releases](https://github.com/AldogPlays/Goveon/releases/latest). Version 1.0 uses the optimized, non-debuggable release variant and the same local signing certificate as the 0.2/0.3 APKs for in-place updates. That retained certificate is labelled Android Debug; its private keystore stays outside Git. A fresh Gradle release build is unsigned until signed offline. CI checks both variants and uploads its separately signed debug APK for development, not as the published release.
+Download the signed APK from [Releases](https://github.com/AldogPlays/Goveon/releases/latest). Version 1.0 uses the optimized, non-debuggable release variant and the same local signing certificate as the 0.2/0.3 APKs for in-place updates. That retained certificate is labelled Android Debug; its private keystore stays outside Git. A fresh Gradle release build is unsigned until signed offline. Builds, tests and lint run locally. GitHub Actions is disabled for this repository, and no workflow files are included. Keep builds and checks local unless the owner explicitly authorizes enabling Actions.
 
 When **you choose to install** over USB:
 
@@ -102,7 +102,7 @@ Launch it yourself and follow the hardware checklist. Development automation nev
 
 `ui/` contains Compose destinations and contextual controls. The ViewModel handles actions/progress. `lighting/` contains independent codecs, BLE/LAN transports, versioned persistence and the repository. Commands serialize per target; group members run concurrently. Coroutine cancellation and foreground ownership stop abandoned operations. There is no DI framework or custom backend.
 
-Raw reference APKs, REA envelopes, captures, local tool configuration, keys and build artifacts are ignored. Public evidence contains selectors, IDs and artifact digests. `./scripts/check-public-files.ps1 -History` checks public source and reachable commit identities; CI repeats it. This pattern scan is an additional guard, not a guarantee of detecting every secret format. Keep account/device identifiers out of public issues.
+Raw reference APKs, REA envelopes, captures, local tool configuration, keys and build artifacts are ignored. Public evidence contains selectors, IDs and artifact digests. Run `./scripts/check-public-files.ps1 -History` locally to check public source and reachable commit identities before publishing. This pattern scan is an additional guard, not a guarantee of detecting every secret format. Keep account/device identifiers out of public issues.
 
 The [REA reports](docs/reverse-engineering.md) distinguish observations, inference and unresolved hardware checks. Goveon implements original code and UI. [TrailRelay](https://github.com/AldogPlays/TrailRelay) inspired readable Material surfaces, contextual sheets and a small responsibility-based structure.
 
