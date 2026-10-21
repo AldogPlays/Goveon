@@ -1,6 +1,6 @@
-# Headless local toolchain
+# Local build and analysis tools
 
-The development machine uses workspace-local tools in `.tools/`, which Git ignores. No Android Studio or desktop windows are needed, and no global PATH or Codex configuration was changed.
+The PowerShell helper uses tools under the ignored `.tools/` directory. It sets environment variables for the current process and runs builds without Android Studio.
 
 Installed tools:
 
@@ -19,7 +19,7 @@ Run from the repository root in PowerShell:
 ./scripts/toolchain.ps1 rea inspect-android-package 'C:/absolute/path/app.apk' --format json
 ```
 
-`build` defaults to the debug APK and JVM unit tests, caps Gradle at two workers, and runs Kotlin compilation in the build process to avoid a persistent compiler daemon. Gradle uses `.tools/gradle-user`; SDK and Android user settings are scoped to `.tools`. `adb devices` only lists devices, although ADB starts its background server if needed. Never install or launch an app on a connected phone without the user's approval. The newer Windows ADB client uses Windows profile resolution for its own authentication files and may require execution outside the Codex restricted sandbox; the script does not change that profile.
+`build` defaults to the debug APK and JVM unit tests, caps Gradle at two workers, and runs Kotlin compilation in the build process to avoid a persistent compiler daemon. Gradle uses `.tools/gradle-user`; SDK and Android user settings are scoped to `.tools`. `adb devices` only lists devices, although ADB starts its background server if needed. ADB stores its authentication files in the Windows user profile. The `.tools` environment settings do not relocate those credentials.
 
 On another machine, install a full JDK 17+ and Android SDK platform 35/build tools 35.0.0, then set `JAVA_HOME` and `ANDROID_HOME` or adapt the local path in the script. The Gradle wrapper is portable. The `rea` action uses an installed command or a launcher supplied through `REA_LAUNCHER` and `REA_NODE`. Machine-specific paths can also live in ignored `.tools/rea-local.json` with `launcher` and `node` fields. Personal filesystem paths never belong in committed scripts. The large reference APK needs an 8 GiB analysis heap; run one headless REA worker at a time.
 
@@ -36,7 +36,7 @@ Official sources: [Temurin](https://adoptium.net/temurin/releases/), [Android SD
 
 ## Local validation only
 
-GitHub Actions is disabled for this repository, and its Android workflow has been removed. Keep builds, tests, lint and privacy checks local; do not add workflows or enable Actions unless the owner explicitly authorizes it.
+Builds, tests, lint, and public-file checks run locally. GitHub Actions is disabled, and no workflow files are included.
 
 Run both variants from the repository root with the configured JDK and Android SDK:
 
@@ -45,4 +45,4 @@ Run both variants from the repository root with the configured JDK and Android S
 ./scripts/check-public-files.ps1 -History
 ```
 
-Use `./gradlew` on Linux/macOS. Successful local checks verify buildability and offline behavior; BLE/LAN hardware behavior, synchronization latency and device-specific effects still require the documented hardware test plan. Version 1.0 is an optimized, non-debuggable release build signed offline with the existing local certificate for update continuity. Keep its private keystore outside Git; never publish signing secrets.
+Use `./gradlew` on Linux/macOS. Local checks cover builds and JVM behavior. BLE/LAN hardware behavior, synchronization latency, Android storage, and device-specific effects require the [hardware test plan](../../docs/testing.md). Version 1.0 is an optimized, non-debuggable release build signed offline with the existing local certificate for update continuity. Keep its private keystore outside Git; never publish signing secrets.

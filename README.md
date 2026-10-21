@@ -81,16 +81,16 @@ Use JDK 17, Android SDK Platform 35 and build tools 35.0.0:
 
 Use `./gradlew` on Linux/macOS. `./scripts/toolchain.ps1 build` selects the configured workspace-local tools. See [toolchain setup](scripts/toolchain/README.md).
 
-Download the signed APK from [Releases](https://github.com/AldogPlays/Goveon/releases/latest). Version 1.0 uses the optimized, non-debuggable release variant and the same local signing certificate as the 0.2/0.3 APKs for in-place updates. That retained certificate is labelled Android Debug; its private keystore stays outside Git. A fresh Gradle release build is unsigned until signed offline. Builds, tests and lint run locally. GitHub Actions is disabled for this repository, and no workflow files are included. Keep builds and checks local unless the owner explicitly authorizes enabling Actions.
+Download the signed APK from [Releases](https://github.com/AldogPlays/Goveon/releases/latest). Version 1.0 uses the optimized, non-debuggable release variant and the same local signing certificate as the 0.2/0.3 APKs for in-place updates. That retained certificate is labelled Android Debug; its private keystore stays outside Git. A fresh Gradle release build is unsigned until signed offline. Builds, tests and lint run locally. GitHub Actions is disabled for this repository, and no workflow files are included. See [toolchain setup](scripts/toolchain/README.md) for local validation commands.
 
-When **you choose to install** over USB:
+To install a release over USB on a test device:
 
 ```powershell
 adb devices -l
 adb -s YOUR_SERIAL install -r goveon-1.0.0.apk
 ```
 
-Launch it yourself and follow the hardware checklist. Development automation never installs or launches on a phone without permission.
+Open the app and follow the [hardware checklist](docs/testing.md).
 
 ## Privacy and development
 
