@@ -1,8 +1,12 @@
 # Goveon
 
-A small, independent Android home for your Govee lights. Kotlin, Jetpack Compose, Material 3, local storage, and real Bluetooth/LAN lighting protocols.
+An Android app for controlling supported Govee lights over Bluetooth and your local Wi-Fi network. Adjust lights, group them by room, and save quick actions without a cloud account or developer API key.
 
-**First release: 1.0.0.** Android 8.0/API 26 or newer. No account, developer key, cloud service, analytics or Goveon server. See [device coverage](docs/ble-protocol.md), [manual checks](docs/testing.md) and [release notes](docs/release-notes-1.0.0.md).
+Requires Android 8.0 (API 26) or newer and a supported light. Device support depends on the model and firmware; see [device coverage](docs/ble-protocol.md). No analytics or Goveon server.
+
+## Download
+
+Download the signed APK from [GitHub Releases](https://github.com/AldogPlays/Goveon/releases/latest). See the [1.0.0 release notes](docs/release-notes-1.0.0.md) for upgrade details.
 
 ## Screenshots
 
@@ -51,20 +55,12 @@ Click a screenshot to view it larger.
 - Rename/forget lights, create custom groups, and save multi-light quick actions. Recipes validate before execution and serialize per light; different lights run concurrently.
 - Material You colors on Android 12+, system/light/dark themes, animated navigation, compact feedback and optional advanced color details.
 
-Goveon starts empty and sends actual GATT writes or UDP packets. A command can be **confirmed**, **accepted**, or **failed**. Delivery acknowledgement does not prove a physical change. Only actual device readings update reported state. Groups have no shared hardware clock.
-
 ## Getting started
 
 1. Power on a light, bring the phone nearby and tap **Discover**. Allow Nearby Devices and enable Bluetooth when prompted. Android 8–11 additionally requires Location permission and the Location switch for BLE scanning; Goveon does not collect location.
 2. Open a light or group to connect automatically. Close other controllers' active connections if a light is busy. Goveon uses direct GATT for supported lights rather than an Android Settings bond.
 3. H6005 and the recovered type-64 bulb family have native RGB/White controls. The latter includes H6004, H6006, H6008, H6009, H600A, H6010 and H600D, with 2700–6500 K in 100 K steps. Other H6 models require valid basic read replies before writes become available. A matching color read can enable RGB but never invents White support. Use **Set model** if an advertisement omits the controller's H6xxx label.
 4. Optional Wi-Fi: enable **LAN Control** on an already provisioned compatible light, join the same network and tap **Find Wi-Fi lights**. Multicast, guest isolation and VPN policies can prevent replies.
-
-Names, device identifiers, groups, actions and appearance stay in app-private storage. Backup is disabled. Runtime readings and connections are never restored as current state. Supported foreground Bluetooth sessions request status every 20 seconds. Leaving controls releases their sessions; quick actions retain their required connections until completion. Backgrounding stops scans, releases GATT and releases the multicast lock. Returning to open controls reconnects automatically. Retries stop after five attempts or immediately for permission/unsupported/authentication failures.
-
-Version 1.0 removes the developer API implementation entirely, including key entry/storage, HTTPS requests and cloud scenes/effects. Upgrading retains local lights, groups and valid basic recipes, drops cloud-only devices and recipes containing removed commands, and deletes retired credentials without decrypting them. A damaged saved record does not discard unrelated valid entries.
-
-Detailed sanitized diagnostics stay in local Logcat under `Goveon`. Credentials and device/network addresses are redacted.
 
 ## Device coverage
 
@@ -74,8 +70,6 @@ Detailed sanitized diagnostics stay in local Logcat under `Goveon`. Credentials 
 | LAN | Discovery, state, power, brightness, RGB and temperature | LAN-capable light, enabled LAN switch and same Wi-Fi. The protocol does not advertise its physical temperature range. |
 | Authentication/provisioning | Not implemented | No guessed pairing secrets, account enrollment or Wi-Fi credential provisioning. |
 | Scenes, music, segments, DreamView | Not shipped | Local family-specific protocols have not been confirmed. No speculative scene IDs or streaming commands. |
-
-H6006's traced full-brightness command sends byte **100**; H6005 uses its separate recovered 20–254 scale. Physical brightness and white-channel calibration require comparison on hardware. RGB white and native White use different payload fields.
 
 ## Build and wired testing
 
@@ -98,12 +92,16 @@ adb -s YOUR_SERIAL install -r goveon-1.0.0.apk
 
 Launch it yourself and follow the hardware checklist. Development automation never installs or launches on a phone without permission.
 
-## Project and privacy
+## Privacy and development
 
-`ui/` contains Compose destinations and contextual controls. The ViewModel handles actions/progress. `lighting/` contains independent codecs, BLE/LAN transports, versioned persistence and the repository. Commands serialize per target; group members run concurrently. Coroutine cancellation and foreground ownership stop abandoned operations. There is no DI framework or custom backend.
+Lights, groups, quick actions, and appearance settings stay in app-private storage. Android backup is disabled. Bluetooth scans and connections stop when the app goes into the background.
 
-Raw reference APKs, REA envelopes, captures, local tool configuration, keys and build artifacts are ignored. Public evidence contains selectors, IDs and artifact digests. Run `./scripts/check-public-files.ps1 -History` locally to check public source and reachable commit identities before publishing. This pattern scan is an additional guard, not a guarantee of detecting every secret format. Keep account/device identifiers out of public issues.
+For protocol behavior, persistence, diagnostics, and public-source checks, see [implementation notes](docs/implementation-notes.md). Use the [manual hardware checklist](docs/testing.md) when testing a change.
 
 The [REA reports](docs/reverse-engineering.md) distinguish observations, inference and unresolved hardware checks. Goveon implements original code and UI. [TrailRelay](https://github.com/AldogPlays/TrailRelay) inspired readable Material surfaces, contextual sheets and a small responsibility-based structure.
 
 Goveon is independent of Govee and is not an official Govee product.
+
+## License
+
+Source code is licensed under the [MIT License](LICENSE).
