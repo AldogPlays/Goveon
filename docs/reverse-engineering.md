@@ -1,6 +1,6 @@
 # Govee investigation and Goveon design
 
-This is a bounded static investigation of the user-supplied APK, performed with the **REA skill**, REA 6.4.0 and headless JADX MCP 0.7.1. The APK was never executed. No phone traffic or physical device behavior was captured. The resulting app is original Kotlin/Compose code; the APK and decompiled source are excluded from Git.
+This static investigation examined Govee Home 6.2.01 using REA 6.4.0 and headless JADX MCP 0.7.1. The APK was never executed. No phone traffic or physical device behavior was captured. The resulting app is original Kotlin/Compose code; the APK and decompiled source are excluded from Git.
 
 This page records the initial LAN/cloud investigation. The subsequent [Bluetooth investigation](ble-protocol.md) extends it with GATT selection, direct connections, notifications, model profiles, and original BLE codecs used by the Bluetooth-first 0.2.0 alpha. The first release's unresolved Bluetooth questions below are historical boundaries, not a statement that the current app is LAN/cloud-only.
 
@@ -22,7 +22,7 @@ Example replay after supplying the same APK and verified engine:
 ./scripts/toolchain.ps1 rea inspect-android-method 'C:/absolute/path/govee.apk' com.govee.base2kt.utils.BleUtils.Companion i --overload-index 0 --format json --full-output
 ```
 
-REA's Android provider required a caller-supplied JADX engine and JDK. The headless workspace toolchain supplies those without changing Codex registration. Its Windows process-isolation helper required an execution environment with access beyond the restricted shell sandbox. This did not authorize or execute the target APK.
+REA's Android provider requires a separately supplied JADX engine and JDK. The [local toolchain guide](../scripts/toolchain/README.md) records the versions, checksums, environment settings, and replay commands used for this analysis.
 
 ## Finding ledger
 

@@ -1,6 +1,6 @@
-# Bluetooth investigation of the supplied Govee APK
+# Govee Bluetooth protocol investigation
 
-This report concerns Govee Home 6.2.01, package `com.govee.home`, SHA-256 `833b42b39fc1c68a807adaa37fb8261ee13f52dee85c142882c6e09e7ec2d452`. REA 6.4.0 with the separately supplied JADX headless 0.7.1 provider inspected the APK without executing it. No phone, light, account credentials, or captured traffic was accessed. Decompiled methods establish the shipped implementation, not that an untested device accepts a command.
+This report concerns Govee Home 6.2.01, package `com.govee.home`, SHA-256 `833b42b39fc1c68a807adaa37fb8261ee13f52dee85c142882c6e09e7ec2d452`. REA 6.4.0 and JADX headless 0.7.1 inspected the APK without executing it. The investigation used no device tests, account credentials, or captured traffic. Decompiled methods establish the shipped implementation, not that an untested device accepts a command.
 
 ## Connection and GATT operations
 
@@ -18,7 +18,7 @@ The concrete `com.govee.bulblightv2.ble.BleComm` binds service `00010203-0405-06
 
 `Support` initializes its product-type lists to `[20]` and registration keys to `["20"]`; `Support.a` registers this type against `GoodsType.c(1, 1)`. The supplied `assets/categories.json` maps **H6005** to goods type 20 under Indoor Lighting / LED Bulbs. It is the only product with this type in that asset. Other H600-series bulbs have different types, so the model prefix does not justify granting them this color protocol. Evidence: `ev_21ec47da6fb4fceb4725a0ccd5baf0630f89d97fb1f5f5e2f009ed40bc551307`, `ev_6469378ce6b8215a2a7a69e66b1faf206c710fe13c9606d87845da5bd21f179d`, and independent asset projection `fallback_categories_dfb02909be16f14c`. Asset SHA-256: `dfb02909be16f14c221d45b90179ecaa574c22581a55fcdf9e3f209936d00e01`. This mapping is static evidence; firmware revisions and live compatibility remain untested.
 
-The original REA bridge's Java method view omitted some static initializer blocks and produced a generic no-body placeholder. An ignored workspace copy adds a narrowly scoped call to the installed provider's `getMethodSmali` for those blocks. Resulting REA records retain the changed bridge hash, `smali` representation, and an explicit local fallback marker. The asset projection uses independent ZIP extraction and is identified separately; it is not a REA-produced record. Original installed tooling and the APK remain unchanged.
+The Java method view omitted some static initializer blocks. Those blocks were inspected through the provider's `getMethodSmali` in a local bridge copy. The evidence records identify that fallback with its bridge hash and `smali` representation. Product-asset mappings use separately identified ZIP extraction rather than REA records. These distinctions preserve the provenance of each finding; the APK was unchanged.
 
 ## Bulb-v3 family and adaptive model support
 

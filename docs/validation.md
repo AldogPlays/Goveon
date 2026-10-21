@@ -1,6 +1,6 @@
 # Validated release: 1.0.0
 
-Validated headlessly on October 12, 2026. No phone was enumerated, contacted, installed to or launched on. ADB 37.0.1 is available; only its version was checked. Its Windows preference-directory lookup requires a normal Windows process rather than this restricted execution sandbox.
+Build, test, lint, and APK checks ran on October 12, 2026 without a connected phone. No device installation, app launch, or radio testing was included.
 
 | Check | Result |
 | --- | --- |
@@ -26,4 +26,4 @@ It is signed offline with the previous local certificate for in-place update con
 
 The original SDK XML-version advisory and deprecated `ConnectivityManager.allNetworks` warning remain. Neither prevents compilation or packaging. R8 optimizes the release build; successful JVM tests do not execute the optimized APK on a phone.
 
-The [hardware checklist](testing.md) includes upgrade preservation, Android credential cleanup, automatic Bluetooth connections/reconnection, overlapping actions, native White, brightness comparisons, foreground/background transitions and LAN changes. The user reports the earlier Bluetooth implementation works on their lights; this release's optimized APK, storage cleanup and firmware/radio variations still need manual verification. No local scenes, account authentication or provisioning protocols are fabricated. [BLE evidence](ble-protocol.md) documents recovered family coverage and remaining limits.
+The [hardware checklist](testing.md) includes upgrade preservation, Android credential cleanup, automatic Bluetooth connections/reconnection, overlapping actions, native White, brightness comparisons, foreground/background transitions and LAN changes. The maintainer reported working Bluetooth control with an earlier build. That report does not verify this release's optimized APK, Android storage cleanup, or compatibility across firmware and radio variants. Those checks remain outstanding. Local scenes, account authentication, and provisioning are not implemented. [BLE evidence](ble-protocol.md) documents recovered family coverage and remaining limits.
